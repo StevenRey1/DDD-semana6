@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+sqlalchemy>=2.0
+psycopg2-binary
+pydantic
+pydantic-settings
+pulsar-client
+pytest
+ruff
+black
+alembic
