@@ -5,13 +5,13 @@ from pulsar.schema import *
 from seedwork.infraestructura.schema.v1.eventos import EventoIntegracion
 
 class EventoRegistradoPayload(Record):
-    id_evento = String()
-    tipo_evento = String()
-    id_referido = String()
-    id_socio = String()
+    idEvento = String()
+    tipoEvento = String()
+    idReferido = String()
+    idSocio = String()
     monto = Float()
     estado = String()
-    fecha_evento = String()
+    fechaEvento = String()
 
 class EventoEventoRegistrado(EventoIntegracion):
     data = EventoRegistradoPayload()

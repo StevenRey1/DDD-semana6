@@ -32,13 +32,13 @@ class Despachador:
         # Determinamos el tipo de evento de dominio para saber qué payload crear
         if isinstance(evento, EventoRegistrado):
             payload = EventoRegistradoPayload(
-                id_evento=str(evento.evento_id),
-                tipo_evento=str(evento.tipo_evento),
-                id_referido=str(evento.id_referido),
-                id_socio=str(evento.id_socio),
+                idEvento=str(evento.evento_id),
+                tipoEvento=str(evento.tipo_evento),
+                idReferido=str(evento.id_referido),
+                idSocio=str(evento.id_socio),
                 monto=float(evento.monto),
                 estado=str(evento.estado),
-                fecha_evento=str(evento.fecha_evento)
+                fechaEvento=str(evento.fecha_evento)
             )
             evento_integracion = EventoEventoRegistrado(data=payload)
         else:
