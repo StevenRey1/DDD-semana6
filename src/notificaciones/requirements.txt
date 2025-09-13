@@ -1,0 +1,24 @@
+# Microservicio de Notificaciones - Requirements
+# Framework web asíncrono
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# Base de datos PostgreSQL
+asyncpg==0.29.0
+psycopg2-binary==2.9.9
+
+# Message Broker - Apache Pulsar
+pulsar-client==3.3.0
+
+# Utilidades de fecha y serialización
+python-dateutil==2.8.2
+pydantic==2.5.0
+
+# Logging y configuración
+python-dotenv==1.0.0
+
+# HTTP client para testing
+requests==2.31.0
+
+# Utilidades adicionales
+uuid==1.30

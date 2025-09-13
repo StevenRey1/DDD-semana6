@@ -1,0 +1,130 @@
+# Docker Compose para desarrollo del Microservicio de Notificaciones
+
+services:
+  # Microservicio de Notificaciones
+  notificaciones:
+    build:
+      context: ../..
+      dockerfile: src/notificaciones/Dockerfile
+    container_name: notificaciones-dev
+    ports:
+      - "8002:8002"
+    environment:
+      # Configuración del microservicio
+      AMBIENTE: desarrollo
+      DEBUG: "true"
+      LOG_LEVEL: DEBUG
+      
+      # Base de datos
+      DATABASE_URL: postgresql://postgres:postgres123@postgres:5432/alpespartners
+      
+      # Pulsar configuration (usando puertos internos del contenedor)
+      PULSAR_HOST: pulsar
+      PULSAR_PORT: 6650
+      PULSAR_TENANT: public
+      PULSAR_NAMESPACE: default
+      PULSAR_SUBSCRIPTION: notificaciones-sub
+      
+      # Canales de notificación
+      EMAIL_HABILITADO: "true"
+      SMS_HABILITADO: "true"
+      PUSH_HABILITADO: "true"
+      
+      # Timeouts y límites
+      MAX_REINTENTOS: 3
+      TIMEOUT_ENVIO: 30
+      BATCH_SIZE: 100
+      
+      # Esperar servicios en desarrollo
+      WAIT_FOR_SERVICES: "true"
+    volumes:
+      # Montar código para desarrollo en vivo
+      - ../../src/notificaciones:/app/src/notificaciones
+      - ../../src/alpespartners:/app/src/alpespartners
+      - ./logs:/app/logs
+    depends_on:
+      - postgres
+      - pulsar
+    networks:
+      - alpespartners-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres-notificaciones
+    environment:
+      POSTGRES_DB: alpespartners
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+    ports:
+      - "5433:5432"  # PostgreSQL (cambié de 5432 a 5433)
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../../init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - alpespartners-net
+    restart: unless-stopped
+
+  # Apache Pulsar
+  pulsar:
+    image: apachepulsar/pulsar:3.1.0
+    container_name: pulsar-notificaciones
+    command: >
+      sh -c "bin/apply-config-from-env.py conf/standalone.conf &&
+             exec bin/pulsar standalone"
+    ports:
+      - "6651:6650"  # Pulsar service (cambié de 6650 a 6651)
+      - "8081:8080"  # Admin API (cambié de 8080 a 8081)
+      - "8082:8081"  # Web UI (cambié de 8081 a 8082)
+    environment:
+      PULSAR_MEM: "-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m"
+    volumes:
+      - pulsar_data:/pulsar/data
+    networks:
+      - alpespartners-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/admin/v2/clusters"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # Pulsar Manager (Opcional - para administración)
+  pulsar-manager:
+    image: apachepulsar/pulsar-manager:v0.3.0
+    container_name: pulsar-manager
+    ports:
+      - "9528:9527"  # Pulsar Manager (cambié de 9527 a 9528)
+    environment:
+      SPRING_CONFIGURATION_FILE: /pulsar-manager/pulsar-manager/application.properties
+      REDIRECT_HOST: http://localhost
+      REDIRECT_PORT: 9528
+      DRIVER_CLASS_NAME: org.postgresql.Driver
+      URL: jdbc:postgresql://postgres:5432/alpespartners
+      USERNAME: postgres
+      PASSWORD: postgres123
+    depends_on:
+      - postgres
+      - pulsar
+    networks:
+      - alpespartners-net
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  pulsar_data:
+    driver: local
+
+networks:
+  alpespartners-net:
+    driver: bridge
+    name: alpespartners-network
