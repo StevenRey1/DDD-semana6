@@ -24,7 +24,7 @@ class RepositorioReferidosPostgreSQL(RepositorioReferidos):
     def agregar(self, referido: ReferidoInfra):
         print(f"DEBUG: Inside RepositorioReferidosPostgreSQL.agregar - Adding referido to session: {referido}")
         db.session.add(referido)
-        print(f"DEBUG: Referido added to session: {referido}")
+        print(f"DEBUG: Referido added to session. Session contains: {db.session.new}")
 
     def actualizar(self, referido: ReferidoInfra):
         db.session.merge(referido)

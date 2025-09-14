@@ -6,6 +6,16 @@ from pydispatch import dispatcher
 
 import pickle
 
+# Import Flask components conditionally
+try:
+    from flask import session, has_app_context, has_request_context
+    FLASK_AVAILABLE = True
+except ImportError:
+    FLASK_AVAILABLE = False
+    session = None # type: ignore
+    has_app_context = lambda: False # type: ignore
+    has_request_context = lambda: False # type: ignore
+
 
 class Lock(Enum):
     OPTIMISTA = 1
@@ -71,41 +81,33 @@ class UnidadTrabajo(ABC):
         for evento in self._obtener_eventos():
             dispatcher.send(signal=f'{type(evento).__name__}Integracion', evento=evento)
 
-def is_flask():
-    try:
-        from flask import session
-        return True
-    except Exception as e:
-        return False
-
 def registrar_unidad_de_trabajo(serialized_obj):
     from config.uow import UnidadTrabajoSQLAlchemy
-    from flask import session
-    
-
-    session['uow'] = serialized_obj
+    if FLASK_AVAILABLE and has_request_context():
+        session['uow'] = serialized_obj
 
 def flask_uow():
-    from flask import session
     from config.uow import UnidadTrabajoSQLAlchemy
-    if session.get('uow'):
-        return session['uow']
-    else:
-        uow_serialized = pickle.dumps(UnidadTrabajoSQLAlchemy())
-        registrar_unidad_de_trabajo(uow_serialized)
-        return uow_serialized
+    if FLASK_AVAILABLE and has_request_context():
+        if session.get('uow'):
+            return session['uow']
+        else:
+            uow_serialized = pickle.dumps(UnidadTrabajoSQLAlchemy())
+            registrar_unidad_de_trabajo(uow_serialized)
+            return uow_serialized
+    return None
 
 def unidad_de_trabajo() -> UnidadTrabajo:
-    if is_flask():
-        return pickle.loads(flask_uow())
-    else:
-        raise Exception('No hay unidad de trabajo')
+    from config.uow import UnidadTrabajoSQLAlchemy
+    if FLASK_AVAILABLE and has_request_context():
+        uow_data = flask_uow()
+        if uow_data:
+            return pickle.loads(uow_data)
+    return UnidadTrabajoSQLAlchemy()
 
 def guardar_unidad_trabajo(uow: UnidadTrabajo):
-    if is_flask():
+    if FLASK_AVAILABLE and has_request_context():
         registrar_unidad_de_trabajo(pickle.dumps(uow))
-    else:
-        raise Exception('No hay unidad de trabajo')
 
 
 class UnidadTrabajoPuerto:

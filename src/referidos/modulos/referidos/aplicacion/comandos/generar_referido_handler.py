@@ -45,8 +45,6 @@ class GenerarReferidoHandler(ComandoHandler):
         
         print("DEBUG: Calling UnidadTrabajoPuerto.registrar_batch")
         UnidadTrabajoPuerto.registrar_batch(repositorio.agregar, referido_dto)
-        print("DEBUG: Calling UnidadTrabajoPuerto.savepoint")
-        UnidadTrabajoPuerto.savepoint()
         print("DEBUG: Calling UnidadTrabajoPuerto.commit")
         UnidadTrabajoPuerto.commit()
         print("DEBUG: UnidadTrabajoPuerto.commit finished")

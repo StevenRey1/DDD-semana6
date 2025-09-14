@@ -30,8 +30,10 @@ class UnidadTrabajoSQLAlchemy(UnidadTrabajo):
             print(f"DEBUG: Executing batch operation: {batch.operacion.__name__} with args {batch.args}")
             batch.operacion(*batch.args, **batch.kwargs)
 
+        print(f"DEBUG: Before commit. Session new: {db.session.new}, dirty: {db.session.dirty}, deleted: {db.session.deleted}")
         print("DEBUG: Calling db.session.commit()")
         db.session.commit()
+        print(f"DEBUG: After commit. Session new: {db.session.new}, dirty: {db.session.dirty}, deleted: {db.session.deleted}")
         print("DEBUG: db.session.commit() finished")
 
         super().commit()

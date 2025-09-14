@@ -9,7 +9,7 @@ from seedwork.infraestructura import utils
 from seedwork.aplicacion.comandos import ejecutar_commando
 
 
-def suscribirse_a_eventos_tracking():
+def suscribirse_a_eventos_tracking(app):
     cliente = None
     try:
         cliente = pulsar.Client(f'pulsar://{utils.broker_host()}:6650')
@@ -34,7 +34,8 @@ def suscribirse_a_eventos_tracking():
                 estado=data.estado,
                 fechaEvento=data.fechaEvento
             )
-            ejecutar_commando(comando)
+            with app.app_context():
+                ejecutar_commando(comando)
             consumidor.acknowledge(mensaje)
 
         cliente.close()
