@@ -8,18 +8,18 @@ services:
   # INFRAESTRUCTURA COMPARTIDA
   # ========================================
   
-  # Base de datos PostgreSQL compartida
-  postgres:
+  # Base de datos para eventos 
+  eventos-db:
     image: postgres:15-alpine
-    container_name: postgres-shared
+    container_name: eventos-db
     environment:
       POSTGRES_DB: alpespartners
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres123
     ports:
-      - "5434:5432"  # Puerto único para evitar conflictos
+      - "5433:5432"  # Puerto único para evitar conflictos
     volumes:
-      - postgres_shared_data:/var/lib/postgresql/data
+      - eventos_db_data:/var/lib/postgresql/data
       - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     networks:
       - alpespartners-shared
@@ -29,7 +29,94 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
+  
+  # Base de datos para referidos
+  referidos-db:
+    image: postgres:15-alpine
+    container_name: referidos-db
+    environment:
+      POSTGRES_DB: alpespartners
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+    ports:
+      - "5434:5432"  # Puerto único para evitar conflictos
+    volumes:
+      - referidos_db_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - alpespartners-shared
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  
+  # Base de datos para notificaciones
+  notificaciones-db:
+    image: postgres:15-alpine
+    container_name: notificaciones-db
+    environment:
+      POSTGRES_DB: alpespartners
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+    ports:
+      - "5435:5432"  # Puerto único para evitar conflictos
+    volumes:
+      - notificaciones_db_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - alpespartners-shared
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  
+  # Base de datos para pagos
+  pagos-db:
+    image: postgres:15-alpine
+    container_name: pagos-db
+    environment:
+      POSTGRES_DB: alpespartners
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+    ports:
+      - "5436:5432"  # Puerto único para evitar conflictos
+    volumes:
+      - pagos_db_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - alpespartners-shared
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  
+  # Base de datos para worker de pagos
+  pagos-worker-db:
+    image: postgres:15-alpine
+    container_name: pagos-worker-db
+    environment:
+      POSTGRES_DB: alpespartners
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+    ports:
+      - "5437:5432"  # Puerto único para evitar conflictos
+    volumes:
+      - pagos_worker_db_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - alpespartners-shared
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   # Apache Pulsar compartido
   pulsar:
     image: apachepulsar/pulsar:3.1.0
@@ -83,8 +170,8 @@ services:
       FLASK_PORT: 8003
       
       # Base de datos compartida
-      DATABASE_URL: postgresql://postgres:postgres123@postgres:5432/alpespartners
-      DB_HOST: postgres
+      DATABASE_URL: postgresql://postgres:postgres123@eventos-db:5432/alpespartners
+      DB_HOST: eventos-db
       DB_PORT: 5432
       DB_NAME: alpespartners
       DB_USER: postgres
@@ -103,7 +190,7 @@ services:
     volumes:
       - ./src/eventosMS:/app/src/eventosMS
     depends_on:
-      postgres:
+      referidos-db:
         condition: service_healthy
       pulsar:
         condition: service_healthy
@@ -141,8 +228,8 @@ services:
       FLASK_PORT: 5001
       
       # Base de datos compartida
-      DATABASE_URL: postgresql://postgres:postgres123@postgres:5432/alpespartners
-      DB_HOST: postgres
+      DATABASE_URL: postgresql://postgres:postgres123@referidos-db:5432/alpespartners
+      DB_HOST: referidos-db
       DB_PORT: 5432
       DB_NAME: alpespartners
       DB_USER: postgres
@@ -161,7 +248,7 @@ services:
     volumes:
       - ./src/referidos:/app/src/referidos
     depends_on:
-      postgres:
+      eventos-db:
         condition: service_healthy
       pulsar:
         condition: service_healthy
@@ -197,20 +284,20 @@ services:
       SERVICE_NAME: pagos-api
       
       # Base de datos compartida
-      DB_URL: postgresql+psycopg2://postgres:postgres123@postgres:5432/alpespartners
-      
+      DB_URL: postgresql+psycopg2://postgres:postgres123@pagos-db:5432/alpespartners
+
       # Pulsar compartido
       PULSAR_URL: pulsar://pulsar:6650
       TOPIC_PAGOS: eventos-pago
       TOPIC_REFERIDO_CONFIRMADO: eventos-referido-confirmado
       OUTBOX_BATCH_SIZE: 100
-      
+
       # Servicios habilitados
       WAIT_FOR_SERVICES: "true"
     volumes:
       - ./src/pagos:/app/src/pagos
     depends_on:
-      postgres:
+      pagos-db:
         condition: service_healthy
       pulsar:
         condition: service_healthy
@@ -223,6 +310,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+
 
   # Worker de pagos para procesar eventos
   pagos-worker:
@@ -242,20 +331,20 @@ services:
       SERVICE_NAME: pagos-worker
       
       # Base de datos compartida
-      DB_URL: postgresql+psycopg2://postgres:postgres123@postgres:5432/alpespartners
-      
+      DB_URL: postgresql+psycopg2://postgres:postgres123@pagos-worker-db:5432/alpespartners
+
       # Pulsar compartido
       PULSAR_URL: pulsar://pulsar:6650
       TOPIC_PAGOS: eventos-pago
       TOPIC_REFERIDO_CONFIRMADO: eventos-referido-confirmado
       OUTBOX_BATCH_SIZE: 100
-      
+
       # Servicios habilitados
       WAIT_FOR_SERVICES: "true"
     volumes:
       - ./src/pagos:/app/src/pagos
     depends_on:
-      postgres:
+      pagos-worker-db:
         condition: service_healthy
       pulsar:
         condition: service_healthy
@@ -283,32 +372,32 @@ services:
       LOG_LEVEL: DEBUG
       
       # Base de datos compartida
-      DATABASE_URL: postgresql://postgres:postgres123@postgres:5432/alpespartners
-      
+      DATABASE_URL: postgresql://postgres:postgres123@notificaciones-db:5432/alpespartners
+      POSTGRES_HOST: notificaciones-db
       # Pulsar compartido
       PULSAR_HOST: pulsar
       PULSAR_PORT: 6650
       PULSAR_TENANT: public
       PULSAR_NAMESPACE: default
       PULSAR_SUBSCRIPTION: notificaciones-sub
-      
+
       # Canales de notificación
       EMAIL_HABILITADO: "true"
       SMS_HABILITADO: "true"
       PUSH_HABILITADO: "true"
-      
+
       # Timeouts y límites
       MAX_REINTENTOS: 3
       TIMEOUT_ENVIO: 30
       BATCH_SIZE: 100
-      
+
       # Esperar servicios en desarrollo
       WAIT_FOR_SERVICES: "true"
     volumes:
       - ./src/notificaciones:/app/src/notificaciones
       - ./logs:/app/logs
     depends_on:
-      postgres:
+      notificaciones-db:
         condition: service_healthy
       pulsar:
         condition: service_healthy
@@ -337,11 +426,11 @@ services:
       REDIRECT_HOST: http://localhost
       REDIRECT_PORT: 9529
       DRIVER_CLASS_NAME: org.postgresql.Driver
-      URL: jdbc:postgresql://postgres:5432/alpespartners
+      URL: jdbc:postgresql://eventos-db:5432/alpespartners
       USERNAME: postgres
       PASSWORD: postgres123
     depends_on:
-      postgres:
+      eventos-db:
         condition: service_healthy
       pulsar:
         condition: service_healthy
@@ -357,6 +446,16 @@ volumes:
   postgres_shared_data:
     driver: local
   pulsar_shared_data:
+    driver: local
+  eventos_db_data:
+    driver: local
+  referidos_db_data:
+    driver: local
+  notificaciones_db_data:
+    driver: local
+  pagos_db_data:
+    driver: local
+  pagos_worker_db_data:
     driver: local
 
 # ========================================
