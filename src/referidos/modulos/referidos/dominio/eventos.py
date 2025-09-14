@@ -5,20 +5,12 @@ import uuid
 from datetime import datetime
 
 @dataclass
-class ReferidoCreado(EventoDominio):
-    idSocio: uuid.UUID = None
-    idReferido: uuid.UUID = None
-    idEvento: uuid.UUID = None
+class VentaReferidaConfirmada(EventoDominio):
+    id_evento: uuid.UUID = None
+    id_socio: uuid.UUID = None
     monto: float = None
-    estado: str = None
-    fechaEvento: datetime = None
-    tipoEvento: str = None
-    fecha_creacion: datetime = None
+    fecha_evento: datetime = None
 
 @dataclass
-class ReferidoConfirmado(EventoDominio):
-    referido_id: uuid.UUID = None
-    id_afiliado: uuid.UUID = None
-    tipo_accion: str = None
-    detalle_accion: str = None
-    fecha_creacion: datetime = None
+class VentaReferidaRechazada(EventoDominio):
+    id_evento: uuid.UUID = None
