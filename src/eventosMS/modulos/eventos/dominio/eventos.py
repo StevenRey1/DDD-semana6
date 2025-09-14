@@ -24,3 +24,21 @@ class EventoRegistrado(EventoDominio):
 
     def nombre_evento(self) -> str:
         return "eventos.eventos-tracking"
+
+
+@dataclass
+class EventoPagoActualizado(EventoDominio):
+    """
+    Evento que se dispara cuando se actualiza un evento con información de pago
+    """
+    evento_id: UUID = field(default=None)
+    id_pago: str = field(default="")
+    estado_anterior: str = field(default="")
+    estado_nuevo: str = field(default="")
+    ganancia_anterior: float = field(default=0.0)
+    ganancia_nueva: float = field(default=0.0)
+    fecha_pago: str = field(default="")
+    monto_pago: float = field(default=0.0)
+
+    def nombre_evento(self) -> str:
+        return "eventos.pago-actualizado"

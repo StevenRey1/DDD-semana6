@@ -14,7 +14,7 @@ def importar_modelos_alchemy():
     import modulos.eventos.infraestructura.dto
 
 
-def comenzar_consumidor():
+def comenzar_consumidor(app):
     """
     Este es un código de ejemplo. Aunque esto sea funcional puede ser un poco peligroso tener 
     threads corriendo por si solos. Mi sugerencia es en estos casos usar un verdadero manejador
@@ -26,7 +26,7 @@ def comenzar_consumidor():
 
 
     # Suscripción a eventos
-    threading.Thread(target=eventos.suscribirse_a_eventos).start()
+    threading.Thread(target=eventos.suscribirse_a_eventos_pago, args=(app,)).start()
 
 
     # Suscripción a comandos
@@ -38,10 +38,10 @@ def create_app(configuracion={}):
     
     # Configure PostgreSQL database
     DB_HOST = os.environ.get('DB_HOST', 'localhost')
-    DB_PORT = os.environ.get('DB_PORT', '5432')
+    DB_PORT = os.environ.get('DB_PORT', '5435')
     DB_NAME = os.environ.get('DB_NAME', 'alpespartners')
     DB_USER = os.environ.get('DB_USER', 'postgres')
-    DB_PASSWORD = os.environ.get('DB_PASSWORD', 'postgres')
+    DB_PASSWORD = os.environ.get('DB_PASSWORD', 'postgres123')
     
     # Use SQLite for testing, PostgreSQL for production
     if configuracion.get('TESTING'):
@@ -65,7 +65,7 @@ def create_app(configuracion={}):
     with app.app_context():
         db.create_all()
         if not app.config.get('TESTING'):
-            comenzar_consumidor()
+            comenzar_consumidor(app)
 
      # Importa Blueprints
     from . import eventos

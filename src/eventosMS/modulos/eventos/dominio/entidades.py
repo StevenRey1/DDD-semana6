@@ -50,3 +50,43 @@ class Evento(AgregacionRaiz):
             estado=self.estado,
             fecha_evento=self.fecha_evento
         ))
+
+    def actualizar_con_pago(self, id_pago: str, estado_pago: str, ganancia: float, 
+                           fecha_pago: str, monto_pago: float):
+        """
+        Actualiza el evento con información de pago completado.
+        Dispara evento de dominio correspondiente.
+        
+        Args:
+            id_pago: Identificador del pago asociado
+            estado_pago: Estado del pago (completado, fallido, etc.)
+            ganancia: Ganancia calculada del evento
+            fecha_pago: Fecha cuando se completó el pago
+            monto_pago: Monto del pago realizado
+        """
+        # Actualizar estado del evento basado en el estado del pago
+        if estado_pago == "completado":
+            self.estado = "pago_completado"
+        elif estado_pago == "fallido":
+            self.estado = "pago_fallido"
+        else:
+            self.estado = f"pago_{estado_pago}"
+        
+        # Actualizar ganancia con el valor calculado
+        self.ganancia = ganancia
+        
+        # Actualizar timestamp de modificación
+        self.fecha_actualizacion = datetime.now()
+        
+        # Disparar evento de dominio para notificar la actualización
+        from .eventos import EventoPagoActualizado
+        self.agregar_evento(EventoPagoActualizado(
+            evento_id=self.id,
+            id_pago=id_pago,
+            estado_anterior=self.estado,
+            estado_nuevo=self.estado,
+            ganancia_anterior=self.ganancia,
+            ganancia_nueva=ganancia,
+            fecha_pago=fecha_pago,
+            monto_pago=monto_pago
+        ))

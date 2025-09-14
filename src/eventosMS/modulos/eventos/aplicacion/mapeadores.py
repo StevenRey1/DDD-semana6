@@ -7,7 +7,7 @@ from seedwork.aplicacion.dto import Mapeador as AppMap
 from seedwork.dominio.repositorios import Mapeador as RepMap
 
 # Importamos los DTOs de la capa de aplicación
-from .dto import EventoDTO
+from .dto import EventoDTO, ActualizarEventoPagoDTO
 
 
 class MapeadorEventoDTOJson(AppMap):
@@ -59,6 +59,61 @@ class MapeadorEventoDTOJson(AppMap):
             "idSocio": id_socio,
             "eventos": eventos_externos
         }
+
+
+class MapeadorActualizarEventoPagoDTOJson(AppMap):
+    """
+    Mapeador para convertir datos externos de pago a ActualizarEventoPagoDTO
+    """
+    _FORMATO_FECHA = '%Y-%m-%dT%H:%M:%SZ'
+
+    def externo_a_dto(self, externo: dict) -> ActualizarEventoPagoDTO:
+        """
+        Convierte datos externos del evento de pago a DTO de actualización
+        
+        Args:
+            externo: Diccionario con datos del evento de pago
+            
+        Returns:
+            ActualizarEventoPagoDTO: DTO con los datos mapeados
+        """
+        
+        return ActualizarEventoPagoDTO(
+            id_evento=externo.get('idEvento', ''),
+            id_pago=externo.get('idPago', ''),
+            estado_pago=externo.get('estado', 'completado'),
+            ganancia=externo.get('monto', 0.0),
+            fecha_pago=externo.get('fechaPago', ''),
+            monto_pago=float(externo.get('monto', 0.0))
+        )
+
+    def dto_a_externo(self, dto: ActualizarEventoPagoDTO) -> dict:
+        """
+        Convierte DTO de actualización a formato externo
+        """
+        return {
+            "idEvento": dto.id_evento,
+            "idPago": dto.id_pago,
+            "estadoPago": dto.estado_pago,
+            "ganancia": dto.ganancia,
+            "fechaPago": dto.fecha_pago,
+            "montoPago": dto.monto_pago
+        }
+
+    def _calcular_ganancia(self, monto: float) -> float:
+        """
+        Calcula la ganancia basada en el monto del pago.
+        Por ejemplo: 10% del monto como ganancia
+        
+        Args:
+            monto: Monto del pago
+            
+        Returns:
+            float: Ganancia calculada
+        """
+        # Lógica de negocio para calcular ganancia
+        # Ejemplo: 10% del monto
+        return monto * 0.10
 
 class MapeadorEvento(RepMap):
     _FORMATO_FECHA = '%Y-%m-%dT%H:%M:%SZ'

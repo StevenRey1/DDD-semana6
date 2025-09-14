@@ -4,7 +4,7 @@ Repositorios de infraestructura para el módulo de Eventos
 from typing import List, Optional
 from uuid import UUID
 
-from modulos.eventos.aplicacion.dto import EventoDTO
+from modulos.eventos.aplicacion.dto import ActualizarEventoPagoDTO, EventoDTO
 from config.db import db
 from modulos.eventos.dominio.repositorios import RepositorioEventos
 from modulos.eventos.dominio.entidades import Evento
@@ -23,7 +23,7 @@ class RepositorioEventosPostgreSQL(RepositorioEventos):
         return self._fabrica_eventos
 
     def obtener_por_id(self, id: UUID) -> Evento:
-        evento_dto = db.session.query(EventoDTO).filter_by(id=str(id)).one()
+        evento_dto = db.session.query(EventoEntity).filter_by(id=str(id)).one()
         return self.fabrica_eventos.crear_objeto(evento_dto, MapeadorEvento())
 
     def obtener_todos(self) -> list[Evento]:
@@ -35,8 +35,22 @@ class RepositorioEventosPostgreSQL(RepositorioEventos):
         db.session.add(evento_dto)
 
     def actualizar(self, evento: Evento):
-        evento_dto = self.fabrica_eventos.crear_objeto(evento, MapeadorEvento())
-        db.session.merge(evento_dto) # Merge para actualizar
+        # Obtener el registro existente de la BD
+        evento_existente_dto = db.session.query(EventoEntity).filter_by(id=evento.id).first()
+        
+        if not evento_existente_dto:
+            raise ValueError(f"Evento con ID {evento.id} no encontrado para actualizar")
+        
+        # Actualizar solo los campos que cambiaron
+        evento_existente_dto.estado = evento.estado
+        evento_existente_dto.ganancia = evento.ganancia
+        
+        print("DEBUG - Actualizando campos:", {
+            'id': evento_existente_dto.id, 
+            'estado': evento_existente_dto.estado, 
+            'ganancia': evento_existente_dto.ganancia
+        })
+        db.session.merge(evento_existente_dto) # Merge para actualizar
 
     def eliminar(self, evento_id: UUID):
         # Implementar lógica de eliminación si es necesario

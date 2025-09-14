@@ -24,6 +24,21 @@ class _FabricaEvento(Fabrica):
             self.validar_regla(MontoDebeSerPositivo(evento.monto))
 
             return evento
+        
+    def actualizar_objeto(self, obj: any, mapeador: Mapeador) -> any:
+        print("DEBUG - Actualizar objeto en _FabricaEvento:", obj)
+        if isinstance(obj, Entidad):
+            print("DEBUG - Actualizar entidad a DTO:")
+            return mapeador.update_entidad_a_dto(obj)
+        
+        else:
+            print("DEBUG - Actualizar DTO a entidad:")
+            evento: Evento = mapeador.update_dto_a_entidad(obj)
+
+            # Validación de reglas de negocio
+            self.validar_regla(MontoDebeSerPositivo(evento.monto))
+
+            return evento
 
 @dataclass
 class _FabricaListaEventos(Fabrica):
@@ -63,6 +78,11 @@ class FabricaEventos(Fabrica):
             return fabrica_evento.crear_objeto(obj, mapeador)
         else:
             raise TipoObjetoNoExisteEnDominioEventosExcepcion()
+        
+    def actualizar_objeto(self, obj: any, mapeador: Mapeador) -> any:
+        print("DEBUG - Actualizar objeto en FabricaEventos:", obj)
+        fabrica_evento = _FabricaEvento()
+        return fabrica_evento.actualizar_objeto(obj, mapeador)
     
     def crear_lista_eventos(self, obj_lista: List[any], mapeador: Mapeador) -> List[Evento]:
         """
