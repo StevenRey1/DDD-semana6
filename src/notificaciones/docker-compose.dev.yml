@@ -18,8 +18,9 @@ services:
       # Base de datos
       DATABASE_URL: postgresql://postgres:postgres123@postgres:5432/alpespartners
       
-      # Pulsar configuration (usando puertos internos del contenedor)
-      PULSAR_HOST: pulsar
+      # PULSAR_URL: host.docker.internal://pulsar:6650
+      # Pulsar configuration (usando puertos internos del contenedor) 
+      PULSAR_HOST: host.docker.internal
       PULSAR_PORT: 6650
       PULSAR_TENANT: public
       PULSAR_NAMESPACE: default
