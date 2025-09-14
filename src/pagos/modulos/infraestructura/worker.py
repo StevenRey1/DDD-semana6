@@ -69,7 +69,7 @@ async def consumidor_referido(repo: RepositorioPagosPG):
         repo: Repositorio PostgreSQL para acceder a pagos
     """
     # Inicializar cliente Pulsar y consumidor
-    client = Client(settings.PULSAR_URL)
+    client = Client(settings.PULSAR_URL)  # version: '3.8'
     consumer = client.subscribe(
         topic=settings.TOPIC_REFERIDO_CONFIRMADO,
         subscription_name="pagos-svc",

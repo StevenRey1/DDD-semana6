@@ -16,7 +16,7 @@ services:
     environment:
       PYTHONPATH: /app/src
       DB_URL: postgresql+psycopg2://pagos:pagos@pagos-db:5432/pagos
-      PULSAR_URL: host.docker.internal://pulsar:6650
+      PULSAR_URL: pulsar://host.docker.internal:6650
       SERVICE_NAME: pagos-api
       TOPIC_PAGOS: eventos-pago
       TOPIC_REFERIDO_CONFIRMADO: eventos-referido-confirmado
@@ -30,7 +30,7 @@ services:
     environment:
       PYTHONPATH: /app/src
       DB_URL: postgresql+psycopg2://pagos:pagos@pagos-db:5432/pagos
-      PULSAR_URL: host.docker.internal://pulsar:6650
+      PULSAR_URL: pulsar://host.docker.internal:6650
       SERVICE_NAME: pagos-worker
       TOPIC_PAGOS: eventos-pago
       TOPIC_REFERIDO_CONFIRMADO: eventos-referido-confirmado
