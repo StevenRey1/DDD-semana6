@@ -26,6 +26,7 @@ async def despachador_outbox(repo: RepositorioPagosPG):
         repo: Repositorio PostgreSQL para acceder al outbox
     """
     # Inicializar cliente Pulsar y productor
+    print(f"DEBUG: PULSAR_URL used by despachador_outbox: {settings.PULSAR_URL}")
     client = Client(settings.PULSAR_URL)
     producer = client.create_producer(
         topic=settings.TOPIC_PAGOS,
@@ -69,6 +70,7 @@ async def consumidor_referido(repo: RepositorioPagosPG):
         repo: Repositorio PostgreSQL para acceder a pagos
     """
     # Inicializar cliente Pulsar y consumidor
+    print(f"DEBUG: PULSAR_URL used by consumidor_referido: {settings.PULSAR_URL}")
     client = Client(settings.PULSAR_URL)  # version: '3.8'
     consumer = client.subscribe(
         topic=settings.TOPIC_REFERIDO_CONFIRMADO,
