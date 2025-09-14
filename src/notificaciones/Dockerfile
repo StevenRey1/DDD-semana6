@@ -12,7 +12,7 @@ LABEL description="Microservicio de Notificaciones - DDD Architecture"
 # Variables de entorno
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONPATH=/app/src/notificaciones
+ENV PYTHONPATH=/app/src
 
 # Crear usuario no-root para seguridad
 RUN groupadd -r notificaciones && useradd -r -g notificaciones notificaciones
@@ -38,12 +38,10 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copiar el código fuente
 COPY src/notificaciones/ /app/src/notificaciones/
 
-# Copiar y hacer ejecutable el entrypoint
-COPY src/notificaciones/entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
-
 # Crear directorios necesarios
 RUN mkdir -p /app/logs /app/data
+
+# No usar entrypoint personalizado por problemas de contexto
 
 # Cambiar permisos
 RUN chown -R notificaciones:notificaciones /app
@@ -78,9 +76,6 @@ EXPOSE 8002
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8002/health || exit 1
 
-# Configurar entrypoint
-ENTRYPOINT ["/app/entrypoint.sh"]
-
 # Cambiar al directorio correcto para ejecutar
 WORKDIR /app/src/notificaciones
 
@@ -89,5 +84,4 @@ CMD ["python", "-m", "uvicorn", "main:app", \
      "--host", "0.0.0.0", \
      "--port", "8002", \
      "--workers", "1", \
-     "--access-log", \
-     "--log-level", "info"]
+     "--reload"]

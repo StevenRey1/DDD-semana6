@@ -15,3 +15,14 @@ class EventoDTO:
     id_referido: UUID
     monto: float
     fecha_evento: str
+
+
+@dataclass(frozen=True)
+class ActualizarEventoPagoDTO:
+    """DTO para actualizar un evento con información de pago completado"""
+    id_evento: str
+    id_pago: str
+    estado_pago: str
+    ganancia: float
+    fecha_pago: str
+    monto_pago: float

@@ -15,3 +15,15 @@ class EventoRegistradoPayload(Record):
 
 class EventoEventoRegistrado(EventoIntegracion):
     data = EventoRegistradoPayload()
+
+class PagoCompletado(Record):
+    """
+    Evento publicado cuando un pago es completado exitosamente
+    Tópico: eventos-pago
+    """
+    idPago = String()
+    idEvento = String() 
+    idSocio = String()
+    monto = Float()
+    estado = String()
+    fechaPago = String()
