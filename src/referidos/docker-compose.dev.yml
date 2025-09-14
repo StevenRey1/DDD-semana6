@@ -1,0 +1,139 @@
+# Docker Compose para desarrollo del Microservicio de Referidos
+
+services:
+  # Microservicio de Referidos
+  referidos:
+    build:
+      context: ../..
+      dockerfile: src/referidos/Dockerfile
+    container_name: referidos-dev
+    ports:
+      - "5001:5001"
+    environment:
+      # Configuración del microservicio
+      AMBIENTE: desarrollo
+      DEBUG: "true"
+      LOG_LEVEL: DEBUG
+      
+      # Flask configuration
+      FLASK_APP: src.referidos.api:create_app
+      FLASK_ENV: development
+      FLASK_HOST: 0.0.0.0
+      FLASK_PORT: 5001
+      
+      # Base de datos PostgreSQL
+      DATABASE_URL: postgresql://referidos_user:referidos_pass@postgres:5432/referidos_db
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: referidos_db
+      DB_USER: referidos_user
+      DB_PASSWORD: referidos_pass
+      
+      # Pulsar configuration (usando puertos internos del contenedor)
+      PULSAR_HOST: pulsar
+      PULSAR_PORT: 6650
+      PULSAR_TENANT: public
+      PULSAR_NAMESPACE: default
+      PULSAR_SUBSCRIPTION: referidos-sub
+      
+      # Configuración de eventos
+      EVENTOS_HABILITADOS: "true"
+      INTEGRACION_HABILITADA: "true"
+      
+      # Timeouts y límites
+      MAX_REINTENTOS: 3
+      TIMEOUT_OPERACION: 30
+      
+      # Esperar servicios en desarrollo
+      WAIT_FOR_SERVICES: "true"
+    volumes:
+      # Montar código para desarrollo en vivo
+      - ../../src/referidos:/app/src/referidos
+      - ./logs:/app/logs
+      # Persistir base de datos SQLite
+      - ./data:/app/data
+    depends_on:
+      - pulsar
+      - postgres
+    networks:
+      - alpespartners-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres-referidos
+    ports:
+      - "5434:5432"  # Puerto diferente para evitar conflictos
+    environment:
+      POSTGRES_DB: referidos_db
+      POSTGRES_USER: referidos_user
+      POSTGRES_PASSWORD: referidos_pass
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_referidos_data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d
+    networks:
+      - alpespartners-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U referidos_user -d referidos_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # Apache Pulsar (reutilizando la misma configuración)
+  pulsar:
+    image: apachepulsar/pulsar:3.1.0
+    container_name: pulsar-referidos
+    command: >
+      sh -c "bin/apply-config-from-env.py conf/standalone.conf &&
+             bin/apply-config-from-env.py conf/bookkeeper.conf &&
+             exec bin/pulsar standalone"
+    ports:
+      - "6652:6650"  # Pulsar service (puerto diferente para evitar conflictos)
+      - "8083:8080"  # Admin API 
+      - "8084:8081"  # Web UI
+    environment:
+      PULSAR_MEM: "-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m"
+      # Configuración específica para BookKeeper en modo standalone
+      PULSAR_PREFIX_managedLedgerDefaultEnsembleSize: "1"
+      PULSAR_PREFIX_managedLedgerDefaultWriteQuorum: "1"
+      PULSAR_PREFIX_managedLedgerDefaultAckQuorum: "1"
+      # Configuración BookKeeper para desarrollo
+      BOOKIE_MEM: "-Xms256m -Xmx256m -XX:MaxDirectMemorySize=128m"
+      # Forzar recreación de metadatos BookKeeper
+      PULSAR_STANDALONE_USE_ZOOKEEPER: "1"
+      # Configuración adicional para estabilidad
+      PULSAR_PREFIX_bookkeeperClientTimeoutInSeconds: "60"
+      PULSAR_PREFIX_managedLedgerReadEntryTimeoutSeconds: "60"
+      PULSAR_PREFIX_managedLedgerAddEntryTimeoutSeconds: "60"
+    volumes:
+      - pulsar_referidos_data:/pulsar/data
+    networks:
+      - alpespartners-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/admin/v2/clusters"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+volumes:
+  pulsar_referidos_data:
+    driver: local
+  postgres_referidos_data:
+    driver: local
+
+networks:
+  alpespartners-net:
+    driver: bridge
+    name: alpespartners-referidos-network
