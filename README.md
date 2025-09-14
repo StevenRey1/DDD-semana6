@@ -13,7 +13,7 @@ Este documento describe cómo probar la integración de los microservicios del p
 ```
 ┌─────────────┐   ┌─────────────┐   ┌─────────────┐   ┌─────────────┐
 │  Referidos  │   │ Pagos       │   │ Notificaciones │ │ Eventos    │
-│  (5001)     │   │ (8080)      │   │ (8002)         │ │ (8003)     │
+│  (8003)     │   │ (8080)      │   │ (8002)         │ │ (8003)     │
 └─────┬───────┘   └─────┬───────┘   └─────┬──────────┘ └─────┬──────┘
          │                │                 │                   │
          └────────────────┴─────────────────┴──────────────────┘
@@ -50,7 +50,7 @@ docker-compose -f docker-compose.integration.yml down --volumes --remove-orphans
 
 | Servicio         | Puerto | Descripción                  |
 |------------------|--------|------------------------------|
-| Referidos        | 5001   | API REST                     |
+| Referidos        | 8004   | API REST                     |
 | Pagos            | 8080   | API REST                     |
 | Notificaciones   | 8002   | API REST                     |
 | Eventos          | 8003   | API REST                     |

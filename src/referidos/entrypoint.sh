@@ -41,7 +41,7 @@ if [ "${WAIT_FOR_SERVICES:-true}" = "true" ]; then
 fi
 
 echo "🎯 Configuración del microservicio de referidos:"
-echo "   Flask: ${FLASK_HOST:-0.0.0.0}:${FLASK_PORT:-5001}"
+echo "   Flask: ${FLASK_HOST:-0.0.0.0}:${FLASK_PORT:-8004}"
 echo "   Pulsar: ${PULSAR_HOST:-localhost}:${PULSAR_PORT:-6650}"
 echo "   Base de datos: ${DATABASE_URL:-PostgreSQL local}"
 echo "   Eventos habilitados: ${EVENTOS_HABILITADOS:-true}"
