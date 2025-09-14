@@ -1,15 +1,7 @@
-""" Mapeadores para la capa de infrastructura del dominio de vuelos
-
-En este archivo usted encontrará los diferentes mapeadores
-encargados de la transformación entre formatos de dominio y DTOs
-
-"""
-
 import uuid
 from seedwork.dominio.repositorios import Mapeador
-from modulos.referidos.dominio.objetos_valor import TipoAccion
 from modulos.referidos.dominio.entidades import Referido
-from .dto import Referido as ReferidoDTO
+from modulos.referidos.infraestructura.dto import Referido as ReferidoDTO
 
 class MapeadorReferido(Mapeador):
     _FORMATO_FECHA = '%Y-%m-%dT%H:%M:%SZ'
@@ -18,36 +10,25 @@ class MapeadorReferido(Mapeador):
         return Referido.__class__
 
     def entidad_a_dto(self, entidad: Referido) -> ReferidoDTO:
-        print('=====================')
-        print(f'ENTIDAD A DTO:')
-        print(entidad)
-        print('=====================')
-        referido_dto = ReferidoDTO(
+        return ReferidoDTO(
             id=str(entidad.id),
-            idSocio=str(entidad.idSocio),
-            idReferido=str(entidad.idReferido),
-            idEvento=str(entidad.idEvento),
+            id_socio=str(entidad.id_socio),
+            id_evento=str(entidad.id_evento),
+            tipo_evento=entidad.tipo_evento,
+            id_referido=str(entidad.id_referido),
             monto=entidad.monto,
             estado=entidad.estado,
-            fechaEvento=entidad.fechaEvento,
-            tipoEvento=entidad.tipoEvento,
-            fecha_creacion=entidad.fecha_creacion.strftime(self._FORMATO_FECHA),
-            fecha_actualizacion=entidad.fecha_actualizacion.strftime(self._FORMATO_FECHA)
+            fecha_evento=entidad.fecha_evento
         )
-        return referido_dto
 
     def dto_a_entidad(self, dto: ReferidoDTO) -> Referido:
-        print('=====================')
-        print(f'DTO A ENTIDAD: {dto}')
-        print('=====================')
-        referido = Referido(
+        return Referido(
             id=uuid.UUID(dto.id) if dto.id else uuid.uuid4(),
-            idSocio=uuid.UUID(dto.idSocio),
-            idReferido=uuid.UUID(dto.idReferido),
-            idEvento=uuid.UUID(dto.idEvento),
+            id_socio=uuid.UUID(dto.id_socio),
+            id_evento=uuid.UUID(dto.id_evento),
+            tipo_evento=dto.tipo_evento,
+            id_referido=uuid.UUID(dto.id_referido),
             monto=dto.monto,
             estado=dto.estado,
-            fechaEvento=dto.fechaEvento,
-            tipoEvento=dto.tipoEvento
+            fecha_evento=dto.fecha_evento
         )
-        return referido

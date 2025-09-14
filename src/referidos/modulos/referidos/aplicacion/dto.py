@@ -15,14 +15,10 @@ class EventoPagoDTO(DTO):
 
 @dataclass(frozen=True)
 class ReferidoDTO(DTO):
-    """DTO para la entidad de Referido."""
-    id: str = field(default_factory=str)
-    idSocio: str = field(default_factory=str)
-    idReferido: str = field(default_factory=str)
-    monto: str = field(default_factory=str)
-    estado: str = field(default_factory=str)
-    idEvento: str = field(default_factory=str)
-    fechaEvento: str = field(default_factory=str)
-    tipoEvento: str = field(default_factory=str)
-    fecha_creacion: str = field(default_factory=str)
-    fecha_actualizacion: str = field(default_factory=str)
+    idSocio: str
+    idEvento: str
+    tipoEvento: str
+    idReferido: str
+    monto: float
+    estado: str
+    fechaEvento: str

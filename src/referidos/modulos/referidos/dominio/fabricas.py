@@ -4,14 +4,11 @@ from seedwork.dominio.fabricas import Fabrica
 from modulos.referidos.dominio.entidades import Referido
 from seedwork.dominio.entidades import Entidad
 from dataclasses import dataclass
-from seedwork.dominio.repositorios import Repositorio
-
 
 @dataclass
 class _FabricaReferido(Fabrica):
-    def crear_objeto(self, obj, mapeador: Mapeador) -> Referido:
+    def crear_objeto(self, obj: any, mapeador: Mapeador) -> Referido:
         if isinstance(obj, Entidad):
-            print(obj)
             return mapeador.entidad_a_dto(obj)
         else:
             referido: Referido = mapeador.dto_a_entidad(obj)

@@ -24,11 +24,15 @@ class UnidadTrabajoSQLAlchemy(UnidadTrabajo):
         return self._batches             
 
     def commit(self):
+        print("DEBUG: Inside UnidadTrabajoSQLAlchemy.commit")
         for batch in self.batches:
             lock = batch.lock
+            print(f"DEBUG: Executing batch operation: {batch.operacion.__name__} with args {batch.args}")
             batch.operacion(*batch.args, **batch.kwargs)
 
+        print("DEBUG: Calling db.session.commit()")
         db.session.commit()
+        print("DEBUG: db.session.commit() finished")
 
         super().commit()
 

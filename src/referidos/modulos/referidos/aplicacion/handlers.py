@@ -1,30 +1,21 @@
-
 from seedwork.aplicacion.handlers import Handler
 from modulos.referidos.infraestructura.despachadores import Despachador
+from modulos.referidos.dominio.eventos import VentaReferidaConfirmada, VentaReferidaRechazada
 
 class HandlerReferidosIntegracion(Handler):
 
     @staticmethod
-    def handle_evento_creado(evento):
+    def handle_venta_referida_confirmada(evento: VentaReferidaConfirmada):
         print('===================================================================')
-        print(f'¡HANDLER: Evento de dominio Evento recibido! ID: {evento.id}')
+        print(f'¡HANDLER: Evento de dominio VentaReferidaConfirmada recibido! ID: {evento.id_evento}')
         print('===================================================================')
-        # =======================================
         despachador = Despachador()
-        # Publicamos el evento en el tópico 'eventos-evento'
-        despachador.publicar_evento(evento, 'eventos-evento')
+        despachador.publicar_evento(evento, 'eventos-referido-confirmado')
 
     @staticmethod
-    def handle_referido_creado(evento):
+    def handle_venta_referida_rechazada(evento: VentaReferidaRechazada):
         print('===================================================================')
-        print(f'¡HANDLER: Evento de dominio ReferidoCreado recibido! ID: {evento.referido_id}')
+        print(f'¡HANDLER: Evento de dominio VentaReferidaRechazada recibido! ID: {evento.id_evento}')
         print('===================================================================')
-        # =======================================
         despachador = Despachador()
-        # Publicamos el evento en el tópico 'eventos-referido'
-        despachador.publicar_evento(evento, 'eventos-referido')
-
-    @staticmethod
-    def handle_referido_confirmado(evento):
-        despachador = Despachador()
-        despachador.publicar_evento(evento, 'eventos-referido')
+        despachador.publicar_evento(evento, 'eventos-referido-rechazado')

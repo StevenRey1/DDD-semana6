@@ -26,14 +26,14 @@ def comenzar_consumidor():
 
 
     # Suscripción a eventos
-    threading.Thread(target=referidos.suscribirse_a_comandos_eventos).start()
-    threading.Thread(target=referidos.suscribirse_a_comandos_referidos).start()
-    threading.Thread(target=referidos.suscribirse_a_comandos_eventos).start()
+    threading.Thread(target=referidos.suscribirse_a_eventos_tracking).start()
 
 
     # Suscripción a comandos
 
 def create_app(configuracion={}):
+    # Clear the uow from session to avoid deserialization errors
+
     # Init la aplicacion de Flask
     app = Flask(__name__, instance_relative_config=True)
     
@@ -50,6 +50,8 @@ def create_app(configuracion={}):
     else:
         app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
     
+    print(f"DEBUG: SQLALCHEMY_DATABASE_URI: {app.config['SQLALCHEMY_DATABASE_URI']}")
+
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     app.secret_key = '9d58f98f-3ae8-4149-a09f-3a8c2012e32c'
@@ -69,7 +71,7 @@ def create_app(configuracion={}):
             comenzar_consumidor()
 
      # Importa Blueprints
-    from . import referidos
+    from api import referidos
 
 
     # Registro de Blueprints
