@@ -1,0 +1,369 @@
+version: '3.8'
+
+# Docker Compose para pruebas integradas entre Referidos y Notificaciones
+# Levanta ambos microservicios con infraestructura compartida
+
+services:
+  # ========================================
+  # INFRAESTRUCTURA COMPARTIDA
+  # ========================================
+  
+  # Base de datos PostgreSQL compartida
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres-shared
+    environment:
+      POSTGRES_DB: alpespartners
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+    ports:
+      - "5434:5432"  # Puerto único para evitar conflictos
+    volumes:
+      - postgres_shared_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - alpespartners-shared
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Apache Pulsar compartido
+  pulsar:
+    image: apachepulsar/pulsar:3.1.0
+    container_name: pulsar-shared
+    command: >
+      sh -c "bin/apply-config-from-env.py conf/standalone.conf &&
+             exec bin/pulsar standalone"
+    ports:
+      - "6653:6650"  # Puerto único para evitar conflictos
+      - "8083:8080"  # Admin API
+      - "8084:8081"  # Web UI
+    environment:
+      PULSAR_MEM: "-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m"
+      # Configuración para múltiples consumidores
+      managedLedgerDefaultEnsembleSize: 1
+      managedLedgerDefaultWriteQuorum: 1
+      managedLedgerDefaultAckQuorum: 1
+    volumes:
+      - pulsar_shared_data:/pulsar/data
+    networks:
+      - alpespartners-shared
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/admin/v2/clusters"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ========================================
+  # MICROSERVICIO DE EVENTOS
+  # ========================================
+  
+  eventos:
+    build:
+      context: .
+      dockerfile: src/eventosMS/Dockerfile
+    container_name: eventos-shared
+    ports:
+      - "8003:8003"
+    environment:
+      # Configuración del microservicio
+      AMBIENTE: desarrollo
+      DEBUG: "true"
+      LOG_LEVEL: DEBUG
+      
+      # Flask configuration
+      FLASK_APP: src.eventosMS.api:create_app
+      FLASK_ENV: development
+      FLASK_HOST: 0.0.0.0
+      FLASK_PORT: 8003
+      
+      # Base de datos compartida
+      DATABASE_URL: postgresql://postgres:postgres123@postgres:5432/alpespartners
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: alpespartners
+      DB_USER: postgres
+      DB_PASSWORD: postgres123
+      
+      # Pulsar compartido
+      PULSAR_HOST: pulsar
+      PULSAR_PORT: 6650
+      PULSAR_TENANT: public
+      PULSAR_NAMESPACE: default
+      BROKER_HOST: pulsar
+      
+      # Eventos habilitados
+      EVENTOS_HABILITADOS: "true"
+      WAIT_FOR_SERVICES: "true"
+    volumes:
+      - ./src/eventosMS:/app/src/eventosMS
+    depends_on:
+      postgres:
+        condition: service_healthy
+      pulsar:
+        condition: service_healthy
+    networks:
+      - alpespartners-shared
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ========================================
+  # MICROSERVICIO DE REFERIDOS
+  # ========================================
+  
+  referidos:
+    build:
+      context: .
+      dockerfile: src/referidos/Dockerfile
+    container_name: referidos-shared
+    ports:
+      - "5001:5001"
+    environment:
+      # Configuración del microservicio
+      AMBIENTE: desarrollo
+      DEBUG: "true"
+      LOG_LEVEL: DEBUG
+      
+      # Flask configuration
+      FLASK_APP: src.referidos.api:create_app
+      FLASK_ENV: development
+      FLASK_HOST: 0.0.0.0
+      FLASK_PORT: 5001
+      
+      # Base de datos compartida
+      DATABASE_URL: postgresql://postgres:postgres123@postgres:5432/alpespartners
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: alpespartners
+      DB_USER: postgres
+      DB_PASSWORD: postgres123
+      
+      # Pulsar compartido
+      PULSAR_HOST: pulsar
+      PULSAR_PORT: 6650
+      PULSAR_TENANT: public
+      PULSAR_NAMESPACE: default
+      PULSAR_SUBSCRIPTION: referidos-sub
+      
+      # Eventos habilitados
+      EVENTOS_HABILITADOS: "true"
+      WAIT_FOR_SERVICES: "true"
+    volumes:
+      - ./src/referidos:/app/src/referidos
+    depends_on:
+      postgres:
+        condition: service_healthy
+      pulsar:
+        condition: service_healthy
+    networks:
+      - alpespartners-shared
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ========================================
+  # MICROSERVICIO DE PAGOS
+  # ========================================
+  
+  pagos:
+    build:
+      context: .
+      dockerfile: src/pagos/Dockerfile
+    container_name: pagos-shared
+    ports:
+      - "8080:8080"
+    environment:
+      # Configuración del microservicio
+      AMBIENTE: desarrollo
+      DEBUG: "true"
+      LOG_LEVEL: DEBUG
+      
+      # Aplicación configuration
+      PYTHONPATH: /app/src
+      SERVICE_NAME: pagos-api
+      
+      # Base de datos compartida
+      DB_URL: postgresql+psycopg2://postgres:postgres123@postgres:5432/alpespartners
+      
+      # Pulsar compartido
+      PULSAR_URL: pulsar://pulsar:6650
+      TOPIC_PAGOS: eventos-pago
+      TOPIC_REFERIDO_CONFIRMADO: eventos-referido-confirmado
+      OUTBOX_BATCH_SIZE: 100
+      
+      # Servicios habilitados
+      WAIT_FOR_SERVICES: "true"
+    volumes:
+      - ./src/pagos:/app/src/pagos
+    depends_on:
+      postgres:
+        condition: service_healthy
+      pulsar:
+        condition: service_healthy
+    networks:
+      - alpespartners-shared
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Worker de pagos para procesar eventos
+  pagos-worker:
+    build:
+      context: .
+      dockerfile: src/pagos/Dockerfile
+    container_name: pagos-worker-shared
+    command: ["python", "-m", "pagos.modulos.infraestructura.worker_referidos_pattern"]
+    environment:
+      # Configuración del worker
+      AMBIENTE: desarrollo
+      DEBUG: "true"
+      LOG_LEVEL: DEBUG
+      
+      # Aplicación configuration
+      PYTHONPATH: /app/src
+      SERVICE_NAME: pagos-worker
+      
+      # Base de datos compartida
+      DB_URL: postgresql+psycopg2://postgres:postgres123@postgres:5432/alpespartners
+      
+      # Pulsar compartido
+      PULSAR_URL: pulsar://pulsar:6650
+      TOPIC_PAGOS: eventos-pago
+      TOPIC_REFERIDO_CONFIRMADO: eventos-referido-confirmado
+      OUTBOX_BATCH_SIZE: 100
+      
+      # Servicios habilitados
+      WAIT_FOR_SERVICES: "true"
+    volumes:
+      - ./src/pagos:/app/src/pagos
+    depends_on:
+      postgres:
+        condition: service_healthy
+      pulsar:
+        condition: service_healthy
+      pagos:
+        condition: service_healthy
+    networks:
+      - alpespartners-shared
+    restart: unless-stopped
+
+  # ========================================
+  # MICROSERVICIO DE NOTIFICACIONES
+  # ========================================
+  
+  notificaciones:
+    build:
+      context: .
+      dockerfile: src/notificaciones/Dockerfile
+    container_name: notificaciones-shared
+    ports:
+      - "8002:8002"
+    environment:
+      # Configuración del microservicio
+      AMBIENTE: desarrollo
+      DEBUG: "true"
+      LOG_LEVEL: DEBUG
+      
+      # Base de datos compartida
+      DATABASE_URL: postgresql://postgres:postgres123@postgres:5432/alpespartners
+      
+      # Pulsar compartido
+      PULSAR_HOST: pulsar
+      PULSAR_PORT: 6650
+      PULSAR_TENANT: public
+      PULSAR_NAMESPACE: default
+      PULSAR_SUBSCRIPTION: notificaciones-sub
+      
+      # Canales de notificación
+      EMAIL_HABILITADO: "true"
+      SMS_HABILITADO: "true"
+      PUSH_HABILITADO: "true"
+      
+      # Timeouts y límites
+      MAX_REINTENTOS: 3
+      TIMEOUT_ENVIO: 30
+      BATCH_SIZE: 100
+      
+      # Esperar servicios en desarrollo
+      WAIT_FOR_SERVICES: "true"
+    volumes:
+      - ./src/notificaciones:/app/src/notificaciones
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      pulsar:
+        condition: service_healthy
+    networks:
+      - alpespartners-shared
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ========================================
+  # HERRAMIENTAS DE ADMINISTRACIÓN
+  # ========================================
+  
+  # Pulsar Manager para administración
+  pulsar-manager:
+    image: apachepulsar/pulsar-manager:v0.3.0
+    container_name: pulsar-manager-shared
+    ports:
+      - "9529:9527"  # Puerto único
+    environment:
+      SPRING_CONFIGURATION_FILE: /pulsar-manager/pulsar-manager/application.properties
+      REDIRECT_HOST: http://localhost
+      REDIRECT_PORT: 9529
+      DRIVER_CLASS_NAME: org.postgresql.Driver
+      URL: jdbc:postgresql://postgres:5432/alpespartners
+      USERNAME: postgres
+      PASSWORD: postgres123
+    depends_on:
+      postgres:
+        condition: service_healthy
+      pulsar:
+        condition: service_healthy
+    networks:
+      - alpespartners-shared
+    restart: unless-stopped
+
+# ========================================
+# VOLÚMENES
+# ========================================
+
+volumes:
+  postgres_shared_data:
+    driver: local
+  pulsar_shared_data:
+    driver: local
+
+# ========================================
+# REDES
+# ========================================
+
+networks:
+  alpespartners-shared:
+    driver: bridge
+    name: alpespartners-shared-network

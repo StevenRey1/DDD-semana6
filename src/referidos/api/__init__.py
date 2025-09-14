@@ -23,32 +23,48 @@ def comenzar_consumidor():
 
     import threading
     import modulos.referidos.infraestructura.consumidores as referidos
+    from flask import current_app
 
+    # Obtener el contexto de aplicación actual
+    app = current_app._get_current_object()
 
-    # Suscripción a eventos
-    threading.Thread(target=referidos.suscribirse_a_comandos_eventos).start()
-    threading.Thread(target=referidos.suscribirse_a_comandos_referidos).start()
-    threading.Thread(target=referidos.suscribirse_a_comandos_eventos).start()
+    # Función wrapper para ejecutar con contexto de aplicación
+    def run_with_app_context(target_func):
+        def wrapper():
+            with app.app_context():
+                target_func()
+        return wrapper
 
-
-    # Suscripción a comandos
+    # Suscripción a eventos principales según especificación
+    threading.Thread(target=run_with_app_context(referidos.suscribirse_a_eventos_tracking)).start()
+    
+    # Suscripciones legacy para compatibilidad
+    threading.Thread(target=run_with_app_context(referidos.suscribirse_a_comandos_eventos)).start()
+    threading.Thread(target=run_with_app_context(referidos.suscribirse_a_comandos_referidos)).start()
 
 def create_app(configuracion={}):
     # Init la aplicacion de Flask
     app = Flask(__name__, instance_relative_config=True)
     
-    # Configure PostgreSQL database
+    # Configure database
     DB_HOST = os.environ.get('DB_HOST', 'localhost')
     DB_PORT = os.environ.get('DB_PORT', '5432')
     DB_NAME = os.environ.get('DB_NAME', 'alpespartners')
     DB_USER = os.environ.get('DB_USER', 'postgres')
     DB_PASSWORD = os.environ.get('DB_PASSWORD', 'postgres')
+    AMBIENTE = os.environ.get('AMBIENTE', 'produccion')
     
-    # Use SQLite for testing, PostgreSQL for production
+    # Use SQLite only for testing, PostgreSQL for development and production
     if configuracion.get('TESTING'):
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'database.db')
     else:
-        app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+        # Use PostgreSQL for both development and production
+        DATABASE_URL = os.environ.get('DATABASE_URL')
+        if DATABASE_URL:
+            app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+        else:
+            # Fallback to individual environment variables
+            app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
     
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 

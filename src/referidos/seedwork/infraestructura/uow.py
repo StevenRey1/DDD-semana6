@@ -82,30 +82,50 @@ def registrar_unidad_de_trabajo(serialized_obj):
     from config.uow import UnidadTrabajoSQLAlchemy
     from flask import session
     
-
-    session['uow'] = serialized_obj
+    try:
+        session['uow'] = serialized_obj
+    except RuntimeError:
+        # Si no hay contexto de sesión, no hacer nada
+        pass
 
 def flask_uow():
     from flask import session
     from config.uow import UnidadTrabajoSQLAlchemy
-    if session.get('uow'):
-        return session['uow']
-    else:
-        uow_serialized = pickle.dumps(UnidadTrabajoSQLAlchemy())
-        registrar_unidad_de_trabajo(uow_serialized)
-        return uow_serialized
+    try:
+        if session.get('uow'):
+            return session['uow']
+        else:
+            uow_serialized = pickle.dumps(UnidadTrabajoSQLAlchemy())
+            registrar_unidad_de_trabajo(uow_serialized)
+            return uow_serialized
+    except RuntimeError:
+        # Si no hay contexto de sesión, retornar UoW serializada directamente
+        return pickle.dumps(UnidadTrabajoSQLAlchemy())
 
 def unidad_de_trabajo() -> UnidadTrabajo:
     if is_flask():
-        return pickle.loads(flask_uow())
+        try:
+            return pickle.loads(flask_uow())
+        except RuntimeError:
+            # Si no hay contexto Flask activo (ej: threads de consumidores)
+            from config.uow import UnidadTrabajoSQLAlchemy
+            return UnidadTrabajoSQLAlchemy()
     else:
-        raise Exception('No hay unidad de trabajo')
+        # Para casos no-Flask, crear directamente
+        from config.uow import UnidadTrabajoSQLAlchemy
+        return UnidadTrabajoSQLAlchemy()
 
 def guardar_unidad_trabajo(uow: UnidadTrabajo):
     if is_flask():
-        registrar_unidad_de_trabajo(pickle.dumps(uow))
+        try:
+            registrar_unidad_de_trabajo(pickle.dumps(uow))
+        except RuntimeError:
+            # Si no hay contexto Flask activo, no hacemos nada
+            # La UoW se manejará directamente en el thread
+            pass
     else:
-        raise Exception('No hay unidad de trabajo')
+        # Para casos no-Flask, no necesitamos persistir en sesión
+        pass
 
 
 class UnidadTrabajoPuerto:
@@ -138,3 +158,8 @@ class UnidadTrabajoPuerto:
         uow = unidad_de_trabajo()
         uow.registrar_batch(operacion, *args, lock=lock, **kwargs)
         guardar_unidad_trabajo(uow)
+
+    @staticmethod
+    def repositorio_referidos():
+        from modulos.referidos.infraestructura.repositorios import RepositorioReferidosPostgreSQL
+        return RepositorioReferidosPostgreSQL()

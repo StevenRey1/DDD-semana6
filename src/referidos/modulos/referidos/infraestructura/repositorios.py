@@ -19,16 +19,43 @@ class RepositorioReferidosPostgreSQL(RepositorioReferidos):
         print(f"Referido DTO from DB: {referido_dto.__dict__}")
         return self.fabrica_referidos.crear_objeto(referido_dto, MapeadorReferido())
 
+    def obtener_por_socio(self, idSocio: UUID) -> list:
+        """Obtener todos los referidos de un socio específico"""
+        referidos_dto = db.session.query(Referido).filter_by(idSocio=str(idSocio)).all()
+        print(f"Referidos DTO from DB para socio {idSocio}: {len(referidos_dto)} encontrados")
+        return [self.fabrica_referidos.crear_objeto(dto, MapeadorReferido()) for dto in referidos_dto]
+
+    def obtener_por_id_referido(self, idReferido: UUID) -> Referido:
+        """Obtener un referido específico por su idReferido"""
+        referido_dto = db.session.query(Referido).filter_by(idReferido=str(idReferido)).first()
+        if not referido_dto:
+            raise ValueError(f"Referido no encontrado: {idReferido}")
+        print(f"Referido DTO from DB by idReferido {idReferido}: {referido_dto.__dict__}")
+        return self.fabrica_referidos.crear_objeto(referido_dto, MapeadorReferido())
+
     def obtener_todos(self) -> list[Referido]:
         # Implementar lógica para obtener todos si es necesario
         raise NotImplementedError
 
     def agregar(self, referido: Referido):
         print("======================")
-        print("RepositorioReferidosPostgreSQL.agregar "+str(referido))
+        print(f"🔄 [REPO] RepositorioReferidosPostgreSQL.agregar - Referido: {referido}")
+        print(f"🔄 [REPO] ID: {referido.id}, idSocio: {referido.idSocio}, idReferido: {referido.idReferido}")
         print("======================")
-        referido_dto = self.fabrica_referidos.crear_objeto(referido, MapeadorReferido())
-        db.session.add(referido_dto)
+        
+        try:
+            referido_dto = self.fabrica_referidos.crear_objeto(referido, MapeadorReferido())
+            print(f"🔄 [REPO] DTO creado: {referido_dto}")
+            print(f"🔄 [REPO] DTO.__dict__: {referido_dto.__dict__}")
+            
+            db.session.add(referido_dto)
+            print("✅ [REPO] Referido agregado a la sesión de BD")
+            
+        except Exception as e:
+            print(f"❌ [REPO] Error agregando referido: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
 
     def actualizar(self, referido: Referido):
         referido_dto = self.fabrica_referidos.crear_objeto(referido, MapeadorReferido())

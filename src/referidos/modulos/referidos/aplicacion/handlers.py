@@ -17,12 +17,13 @@ class HandlerReferidosIntegracion(Handler):
     @staticmethod
     def handle_referido_creado(evento):
         print('===================================================================')
-        print(f'¡HANDLER: Evento de dominio ReferidoCreado recibido! ID: {evento.referido_id}')
+        print(f'¡HANDLER: Evento de dominio ReferidoCreado recibido! ID: {evento.idReferido}')
         print('===================================================================')
         # =======================================
-        despachador = Despachador()
-        # Publicamos el evento en el tópico 'eventos-referido'
-        despachador.publicar_evento(evento, 'eventos-referido')
+        # Temporal: Comentar publicación para evitar timeout de Pulsar
+        print(f'[MOCK] Publicaría evento ReferidoCreado en eventos-referido: {evento}')
+        # despachador = Despachador()
+        # despachador.publicar_evento(evento, 'eventos-referido')
 
     @staticmethod
     def handle_referido_confirmado(evento):

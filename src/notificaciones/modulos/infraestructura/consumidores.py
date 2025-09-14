@@ -7,11 +7,20 @@ from typing import Dict, Any
 from abc import ABC, abstractmethod
 
 import pulsar
+from pulsar.schema import AvroSchema
 
 from ...config import configuracion
 from ...config.pulsar_config import pulsar_config
 from ..aplicacion.servicios import ServicioAplicacionNotificaciones
 from ..aplicacion.dto import CrearNotificacionDTO
+from .schema.eventos_referidos import VentaReferidaConfirmada, VentaReferidaRechazada
+from .schema_manager import ManejadorSchemaHibrido
+
+
+# Importar schemas de eventos de referidos
+from .schema.v1.eventos_referidos import VentaReferidaConfirmada
+from .schema.v1.eventos_pago import PagoCompletado
+
 
 
 logger = logging.getLogger(__name__)
@@ -25,20 +34,45 @@ class ConsumidorEventosBase(ABC):
         self.cliente_pulsar = None
         self.consumidor = None
         self.running = False
+        self.schema_manager = None
+    
+    def configurar_schema_manager(self):
+        """Configura el manejador de schemas híbrido"""
+        schema_class = self.obtener_schema_estatico_class()
+        self.schema_manager = ManejadorSchemaHibrido(
+            schema_estatico_class=schema_class,
+            usar_registry=True,  # 🚀 Usar Schema Registry como prioridad
+            usar_dinamico=True   # 🔄 Fallback dinámico si todo falla
+        )
+        logger.info(f"📋 Schema Manager configurado para {self.obtener_topico()}")
     
     async def inicializar(self):
         """Inicializa la conexión con Pulsar"""
         try:
+            # Configurar schema manager
+            self.configurar_schema_manager()
+            
             self.cliente_pulsar = pulsar.Client(
                 pulsar_config.service_url,
                 connection_timeout_ms=pulsar_config.consumer_timeout_ms
             )
             
-            self.consumidor = self.cliente_pulsar.subscribe(
-                self.obtener_topico(),
-                subscription_name=self.obtener_suscripcion(),
-                consumer_type=pulsar.ConsumerType.Shared
-            )
+            # Configurar el consumidor con o sin schema
+            config = {
+                'topic': self.obtener_topico(),
+                'subscription_name': self.obtener_suscripcion(),
+                'consumer_type': pulsar.ConsumerType.Shared
+            }
+            
+            # Obtener schema usando el schema manager (híbrido: Registry -> Static -> Dynamic)
+            schema = self.schema_manager.obtener_schema(self.obtener_topico())
+            if schema:
+                config['schema'] = schema
+                logger.info(f"Schema obtenido para tópico {self.obtener_topico()}: {type(schema)}")
+            else:
+                logger.warning(f"No se pudo obtener schema para tópico {self.obtener_topico()}, consumiendo sin schema")
+            
+            self.consumidor = self.cliente_pulsar.subscribe(**config)
             
             logger.info(f"Consumidor inicializado para tópico: {self.obtener_topico()}")
             
@@ -104,6 +138,13 @@ class ConsumidorEventosBase(ABC):
         """Retorna el nombre de la suscripción"""
         pass
     
+    def obtener_schema_estatico_class(self):
+        """
+        Retorna la clase de schema estático para este consumidor.
+        Override en subclases si tienes schema estático.
+        """
+        return None
+    
     @abstractmethod
     async def procesar_mensaje(self, mensaje) -> None:
         """Procesa un mensaje recibido"""
@@ -114,10 +155,14 @@ class ConsumidorEventosPagos(ConsumidorEventosBase):
     """Consumidor de eventos del módulo de pagos"""
     
     def obtener_topico(self) -> str:
-        return pulsar_config.get_full_topic_name("eventos-pagos")
+        return pulsar_config.get_full_topic_name("eventos-pagos-v2")
     
     def obtener_suscripcion(self) -> str:
         return f"{pulsar_config.subscription_name}-pagos"
+    
+    def obtener_schema_estatico_class(self):
+        """Usar schema específico de VentaReferidaConfirmada"""
+        return PagoCompletado
     
     async def procesar_mensaje(self, mensaje) -> None:
         """Procesa eventos de pagos para crear notificaciones"""
@@ -128,7 +173,7 @@ class ConsumidorEventosPagos(ConsumidorEventosBase):
             logger.info(f"🔍 Datos RAW recibidos: {repr(raw_data)}")
             logger.info(f"🔍 Datos decodificados: {repr(decoded_data)}")
             
-            datos = json.loads(decoded_data)
+            datos = json.loads(mensaje.data().decode('utf-8'))
             estado = datos.get('estado')  # ✅ Cambio: tipo_evento → estado
             
             logger.info(f"🔍 JSON parseado: {datos}")
@@ -222,6 +267,7 @@ class ConsumidorEventosPagos(ConsumidorEventosBase):
         await self.servicio_notificaciones.crear_notificacion(dto)
 
 
+
 class ConsumidorEventosReferidos(ConsumidorEventosBase):
     """Consumidor de eventos del módulo de referidos"""
     
@@ -301,6 +347,193 @@ class ConsumidorEventosReferidos(ConsumidorEventosBase):
         await self.servicio_notificaciones.crear_notificacion(dto)
 
 
+class ConsumidorEventosReferidosConfirmados(ConsumidorEventosBase):
+    """Consumidor específico para eventos de referidos confirmados"""
+    
+    def obtener_topico(self) -> str:
+        return pulsar_config.get_full_topic_name("eventos-referido-confirmado")
+    
+    def obtener_suscripcion(self) -> str:
+        return f"{pulsar_config.subscription_name}-referidos-confirmados"
+    
+    def obtener_schema_estatico_class(self):
+        """Usar schema específico de VentaReferidaConfirmada"""
+        return VentaReferidaConfirmada
+    
+    async def procesar_mensaje(self, mensaje) -> None:
+        """Procesa eventos de referidos confirmados para crear notificaciones"""
+        try:
+            # Obtener datos deserializados por Avro
+            datos = mensaje.value()
+            logger.info(f"Evento VentaReferidaConfirmada recibido: {datos}")
+            
+            # Convertir a dict para facilitar el manejo
+            evento_dict = {
+                'idEvento': datos.idEvento,
+                'idSocio': datos.idSocio,
+                'monto': datos.monto,
+                'fechaEvento': datos.fechaEvento
+            }
+            
+            # Procesar evento de referido confirmado
+            await self._procesar_referido_confirmado(evento_dict)
+                
+            logger.info(f"Evento de referido confirmado procesado exitosamente: {datos.idEvento}")
+            
+        except Exception as e:
+            logger.error(f"Error procesando evento de referido confirmado: {e}")
+            raise
+    
+    async def _procesar_referido_confirmado(self, datos: dict):
+        """Procesa un evento de referido confirmado"""
+        logger.info(f"Procesando referido confirmado: {datos}")
+        
+        # Crear notificación de confirmación
+        dto = CrearNotificacionDTO(
+            id_usuario=datos.get('idSocio', 'sistema'),
+            tipo='confirmacion',  # ✅ Usando tipo válido
+            canal='email',
+            destinatario=f"{datos.get('idSocio', 'usuario')}@alpespartners.com",
+            titulo='¡Referido Confirmado!',
+            mensaje=f'Tu referido ha sido confirmado exitosamente. Evento ID: {datos.get("idEvento", "N/A")}, Monto: ${datos.get("monto", 0)}',
+            datos_adicionales={
+                'idEvento': datos.get('idEvento'),
+                'idSocio': datos.get('idSocio'),
+                'monto': datos.get('monto'),
+                'fechaEvento': datos.get('fechaEvento'),
+                'tipo_evento': 'referido_confirmado'  # ✅ Especificamos el tipo de evento aquí
+            }
+        )
+        
+        try:
+            result = await self.servicio_notificaciones.crear_notificacion(dto)
+            logger.info(f"✅ Notificación de referido confirmado creada exitosamente: {result.id_notificacion if result else 'None'}")
+        except Exception as e:
+            logger.error(f"❌ Error creando notificación de referido confirmado: {e}")
+            raise
+
+class ConsumidorEventosPagos2(ConsumidorEventosBase):
+    """Consumidor específico para eventos de referidos confirmados"""
+    
+    def obtener_topico(self) -> str:
+        return pulsar_config.get_full_topic_name("eventos-pagos")
+    
+    def obtener_suscripcion(self) -> str:
+        return f"{pulsar_config.subscription_name}-referidos-confirmados"
+    
+    def obtener_schema_estatico_class(self):
+        """Usar schema específico de VentaReferidaConfirmada"""
+        return PagoCompletado
+    
+    async def procesar_mensaje(self, mensaje) -> None:
+        """Procesa eventos de referidos confirmados para crear notificaciones"""
+        try:
+            # Obtener datos deserializados por Avro
+            datos = mensaje.value()
+            logger.info(f"Evento VentaReferidaConfirmada recibido: {datos}")
+            
+            # Convertir a dict para facilitar el manejo
+            evento_dict = {
+                'idPago': datos.idPago,
+                'idEvento': datos.idEvento,
+                'idSocio': datos.idSocio,
+                'monto': datos.monto,
+                'estado': datos.estado,
+                'fechaPago': datos.fechaPago
+              
+            }
+            
+            estado = datos.estado  # ✅ Cambio: tipo_evento → estado
+            # Procesar evento de referido confirmado
+            """ await self._procesar_referido_confirmado(evento_dict) """
+                
+            logger.info(f"Evento de referido confirmado procesado exitosamente: {datos.idEvento}")
+            
+            if  estado == 'completado':  # ✅ Cambio: PagoAprobado → completado
+                    await self._procesar_pago_completado(evento_dict)
+            elif estado == 'rechazado':  # ✅ Cambio: PagoRechazado → rechazado
+                await self._procesar_pago_rechazado(evento_dict)
+            elif estado == 'solicitado':  # ✅ Cambio: PagoPendiente → solicitado
+                await self._procesar_pago_solicitado(evento_dict)
+            else:
+                logger.warning(f"⚠️ Estado desconocido: {estado}, datos: {evento_dict}")
+                
+            logger.info(f"Evento de pago procesado: {estado}")
+                
+        
+        except Exception as e:
+            logger.error(f"Error procesando evento de pago: {e}")
+            raise
+    
+    async def _procesar_pago_completado(self, datos: Dict[str, Any]):  # ✅ Cambio: aprobado → completado
+        """Procesa un pago completado creando notificación"""
+        logger.info(f"🔄 Procesando pago completado para socio: {datos.get('idSocio')}")  # ✅ Cambio: id_usuario → idSocio
+        
+        dto = CrearNotificacionDTO(
+            id_usuario=datos.get('idSocio'),  # ✅ Cambio: id_usuario → idSocio
+            tipo='transaccional',
+            canal='email',
+            destinatario=f"{datos.get('idSocio')}@alpespartners.com",  # ✅ Cambio: usar idSocio para generar email
+            titulo='Pago Completado',  # ✅ Cambio: Aprobado → Completado
+            mensaje=f'Tu pago por ${datos.get("monto", 0)} ha sido completado exitosamente.',  # ✅ Cambio: aprobado → completado
+            datos_adicionales={
+                'idPago': datos.get('idPago'),  # ✅ Cambio: id_pago → idPago
+                'idEvento': datos.get('idEvento'),  # ✅ Nuevo campo según documentación
+                'monto': datos.get('monto'),
+                'fechaPago': datos.get('fechaPago'),  # ✅ Cambio: fecha_creacion → fechaPago
+                'estado': datos.get('estado')  # ✅ Nuevo campo según documentación
+            }
+        )
+        
+        try:
+            result = await self.servicio_notificaciones.crear_notificacion(dto)
+            logger.info(f"✅ Notificación creada exitosamente: {result.id_notificacion if result else 'None'}")
+        except Exception as e:
+            logger.error(f"❌ Error creando notificación: {e}")
+            raise
+    
+    async def _procesar_pago_rechazado(self, datos: Dict[str, Any]):
+        """Procesa un pago rechazado creando notificación"""
+        dto = CrearNotificacionDTO(
+            id_usuario=datos.get('idSocio'),  # ✅ Cambio: id_usuario → idSocio
+            tipo='alerta',
+            canal='email',
+            destinatario=f"{datos.get('idSocio')}@alpespartners.com",  # ✅ Cambio: usar idSocio para generar email
+            titulo='Pago Rechazado',
+            mensaje=f'Tu pago por ${datos.get("monto", 0)} ha sido rechazado.',  # ✅ Simplificado (no hay motivo en documentación)
+            datos_adicionales={
+                'idPago': datos.get('idPago'),  # ✅ Cambio: id_pago → idPago
+                'idEvento': datos.get('idEvento'),  # ✅ Nuevo campo según documentación
+                'monto': datos.get('monto'),
+                'fechaPago': datos.get('fechaPago'),  # ✅ Nuevo campo según documentación
+                'estado': datos.get('estado')  # ✅ Nuevo campo según documentación
+            }
+        )
+        
+        await self.servicio_notificaciones.crear_notificacion(dto)
+    
+    async def _procesar_pago_solicitado(self, datos: Dict[str, Any]):  # ✅ Cambio: pendiente → solicitado
+        """Procesa un pago solicitado creando notificación"""
+        dto = CrearNotificacionDTO(
+            id_usuario=datos.get('idSocio'),  # ✅ Cambio: id_usuario → idSocio
+            tipo='informativa',
+            canal='email',
+            destinatario=f"{datos.get('idSocio')}@alpespartners.com",  # ✅ Cambio: usar idSocio para generar email
+            titulo='Pago Solicitado',  # ✅ Cambio: en Proceso → Solicitado
+            mensaje=f'Tu pago por ${datos.get("monto", 0)} ha sido solicitado. Te notificaremos cuando esté completo.',  # ✅ Cambio: procesado → solicitado
+            datos_adicionales={
+                'idPago': datos.get('idPago'),  # ✅ Cambio: id_pago → idPago
+                'idEvento': datos.get('idEvento'),  # ✅ Nuevo campo según documentación
+                'monto': datos.get('monto'),
+                'fechaPago': datos.get('fechaPago'),  # ✅ Nuevo campo según documentación
+                'estado': datos.get('estado')  # ✅ Nuevo campo según documentación
+            }
+        )
+        
+        await self.servicio_notificaciones.crear_notificacion(dto)
+
+    
+  
 class ConsumidorEventosSistema(ConsumidorEventosBase):
     """Consumidor de eventos del sistema (registro_eventos)"""
     
@@ -454,7 +687,9 @@ class OrquestadorConsumidores:
             ConsumidorEventosPagos(servicio_notificaciones),
             ConsumidorEventosReferidos(servicio_notificaciones),
             ConsumidorEventosReferidosRechazados(servicio_notificaciones),  # 🔥 NUEVO
-            ConsumidorEventosSistema(servicio_notificaciones)
+            ConsumidorEventosReferidosConfirmados(servicio_notificaciones),  # 🔥 NUEVO
+            ConsumidorEventosSistema(servicio_notificaciones),
+            ConsumidorEventosPagos2(servicio_notificaciones)  # 🔥 NUEVO
         ]
         self.tareas = []
     

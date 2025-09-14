@@ -18,8 +18,8 @@ services:
       # Base de datos
       DATABASE_URL: postgresql://postgres:postgres123@postgres:5432/alpespartners
       
-      # Pulsar configuration (usando puertos internos del contenedor)
-      PULSAR_HOST: pulsar
+      # Pulsar configuration (usando Pulsar de referidos)
+      PULSAR_HOST: pulsar-referidos
       PULSAR_PORT: 6650
       PULSAR_TENANT: public
       PULSAR_NAMESPACE: default
@@ -44,9 +44,8 @@ services:
       - ./logs:/app/logs
     depends_on:
       - postgres
-      - pulsar
     networks:
-      - alpespartners-net
+      - alpespartners-referidos-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
@@ -125,6 +124,6 @@ volumes:
     driver: local
 
 networks:
-  alpespartners-net:
-    driver: bridge
-    name: alpespartners-network
+  alpespartners-referidos-network:
+    external: true
+    name: alpespartners-referidos-network

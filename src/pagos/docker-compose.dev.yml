@@ -1,0 +1,40 @@
+version: '3.8'
+services:
+  pagos-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: pagos
+      POSTGRES_USER: pagos
+      POSTGRES_PASSWORD: pagos
+    ports:
+      - "5433:5432"
+    volumes:
+      - pagos-db-data:/var/lib/postgresql/data
+
+  pagos-api:
+    build: .
+    environment:
+      PYTHONPATH: /app/src
+      DB_URL: postgresql+psycopg2://pagos:pagos@pagos-db:5432/pagos
+      PULSAR_URL: host.docker.internal://pulsar:6650
+      SERVICE_NAME: pagos-api
+      TOPIC_PAGOS: eventos-pago
+      TOPIC_REFERIDO_CONFIRMADO: eventos-referido-confirmado
+    ports:
+      - "8090:8080"
+    depends_on:
+      - pagos-db
+  pagos-worker:
+    build: .
+    command: ["python", "-m", "pagos.modulos.infraestructura.worker"]
+    environment:
+      PYTHONPATH: /app/src
+      DB_URL: postgresql+psycopg2://pagos:pagos@pagos-db:5432/pagos
+      PULSAR_URL: host.docker.internal://pulsar:6650
+      SERVICE_NAME: pagos-worker
+      TOPIC_PAGOS: eventos-pago
+      TOPIC_REFERIDO_CONFIRMADO: eventos-referido-confirmado
+    depends_on:
+      - pagos-db
+volumes:
+  pagos-db-data:

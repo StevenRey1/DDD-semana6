@@ -1,0 +1,1 @@
+# Schema para eventos externos

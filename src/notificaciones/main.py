@@ -382,7 +382,7 @@ async def listar_notificaciones(
             todas = [n for n in todas if n.canal.valor == canal]
         
         # Convertir a DTOs
-        from .modulos.aplicacion.mapeadores import MapeadorNotificacion
+        from notificaciones.modulos.aplicacion.mapeadores import MapeadorNotificacion
         mapeador = MapeadorNotificacion()
         dtos = [mapeador.entidad_a_dto(n) for n in todas]
         

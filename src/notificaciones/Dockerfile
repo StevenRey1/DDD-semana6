@@ -12,7 +12,7 @@ LABEL description="Microservicio de Notificaciones - DDD Architecture"
 # Variables de entorno
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app/src/notificaciones
 
 # Crear usuario no-root para seguridad
 RUN groupadd -r notificaciones && useradd -r -g notificaciones notificaciones
@@ -81,8 +81,11 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # Configurar entrypoint
 ENTRYPOINT ["/app/entrypoint.sh"]
 
+# Cambiar al directorio correcto para ejecutar
+WORKDIR /app/src/notificaciones
+
 # Comando por defecto
-CMD ["python", "-m", "uvicorn", "src.notificaciones.main:app", \
+CMD ["python", "-m", "uvicorn", "main:app", \
      "--host", "0.0.0.0", \
      "--port", "8002", \
      "--workers", "1", \
