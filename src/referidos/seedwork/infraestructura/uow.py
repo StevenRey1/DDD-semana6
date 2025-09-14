@@ -97,46 +97,72 @@ def flask_uow():
             return uow_serialized
     return None
 
+_uow_current = None # Global variable to hold the current UOW instance for non-Flask contexts
+
 def unidad_de_trabajo() -> UnidadTrabajo:
     from config.uow import UnidadTrabajoSQLAlchemy
+    global _uow_current
+
     if FLASK_AVAILABLE and has_request_context():
         uow_data = flask_uow()
         if uow_data:
             return pickle.loads(uow_data)
-    return UnidadTrabajoSQLAlchemy()
+    else:
+        # For non-Flask contexts (like the consumer), ensure a single UOW instance
+        if _uow_current is None:
+            _uow_current = UnidadTrabajoSQLAlchemy()
+        return _uow_current
 
 def guardar_unidad_trabajo(uow: UnidadTrabajo):
     if FLASK_AVAILABLE and has_request_context():
         registrar_unidad_de_trabajo(pickle.dumps(uow))
+    # For non-Flask contexts, we don't need to "save" it globally,
+    # as _uow_current already holds the reference.
 
 
 class UnidadTrabajoPuerto:
 
     @staticmethod
+    def _get_uow() -> UnidadTrabajo:
+        # This method will ensure we always get the correct UOW instance
+        # either from Flask session or the global _uow_current
+        return unidad_de_trabajo()
+
+    @staticmethod
     def commit():
-        uow = unidad_de_trabajo()
+        uow = UnidadTrabajoPuerto._get_uow()
         uow.commit()
         guardar_unidad_trabajo(uow)
+        # After commit, for non-Flask contexts, we should clear the UOW
+        # so a new one is created for the next logical unit of work.
+        global _uow_current
+        if not (FLASK_AVAILABLE and has_request_context()):
+            _uow_current = None
+
 
     @staticmethod
     def rollback(savepoint=None):
-        uow = unidad_de_trabajo()
+        uow = UnidadTrabajoPuerto._get_uow()
         uow.rollback(savepoint=savepoint)
         guardar_unidad_trabajo(uow)
+        # After rollback, for non-Flask contexts, we should clear the UOW
+        global _uow_current
+        if not (FLASK_AVAILABLE and has_request_context()):
+            _uow_current = None
 
     @staticmethod
     def savepoint():
-        uow = unidad_de_trabajo()
+        uow = UnidadTrabajoPuerto._get_uow()
         uow.savepoint()
         guardar_unidad_trabajo(uow)
 
     @staticmethod
     def dar_savepoints():
-        uow = unidad_de_trabajo()
+        uow = UnidadTrabajoPuerto._get_uow()
         return uow.savepoints()
 
     @staticmethod
     def registrar_batch(operacion, *args, lock=Lock.PESIMISTA, **kwargs):
-        uow = unidad_de_trabajo()
+        uow = UnidadTrabajoPuerto._get_uow()
         uow.registrar_batch(operacion, *args, lock=lock, **kwargs)
         guardar_unidad_trabajo(uow)
