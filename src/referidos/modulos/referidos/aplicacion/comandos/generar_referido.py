@@ -103,6 +103,7 @@ class GenerarReferidoHandler(CrearReferidoBaseHandler):
         despachador = Despachador()
         try:
             datos_confirmacion = {
+                'idEvento': comando.idEvento,
                 'idReferido': comando.idReferido,
                 'idSocio': comando.idSocio,
                 'monto': comando.monto * 0.1,  # 10% de comisión por ejemplo

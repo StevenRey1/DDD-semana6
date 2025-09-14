@@ -108,7 +108,7 @@ class Despachador:
             evento_id = str(uuid.uuid4())
             
             evento = VentaReferidaConfirmada(
-                idEvento=evento_id,  # UUID único para el evento
+                idEvento=datos['idEvento'],  # UUID único para el evento
                 idSocio=datos['idSocio'],
                 monto=datos['monto'],  # Usar 'monto' directamente
                 fechaEvento=datos['fechaEvento']  # Mapear fechaConfirmacion a fechaEvento
