@@ -19,7 +19,7 @@ class TipoAccion(str, Enum):
     OTRO = "Otro"
 
 class TipoEvento(str, Enum):
-    VENTA = "VENTA"
+    VENTA = "venta_creada"
 
 class EstadoReferido(str, Enum):
     PENDIENTE = "PENDIENTE"

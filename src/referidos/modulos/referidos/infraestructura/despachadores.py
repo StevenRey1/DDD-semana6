@@ -3,14 +3,12 @@ from pulsar.schema import *
 import datetime
 
 # Importamos TODOS los eventos y payloads que este despachador puede manejar
-from modulos.referidos.infraestructura.schema.v1.comandos import ComandoConfirmarReferido, ComandoConfirmarReferidoPayload, ComandoCrearReferido, ComandoCrearReferidoPayload
-from modulos.referidos.infraestructura.schema.v1.eventos import  EventoReferidoCreado, EventoReferidoConfirmado, EventoReferidoCreadoPayload, EventoReferidoConfirmadoPayload
 
-# Importamos los eventos de tracking (VentaReferidaConfirmada, VentaReferidaRechazada)
-from modulos.referidos.infraestructura.schema.v1.eventos_tracking import VentaReferidaConfirmada, VentaReferidaRechazada
 
-# Importamos los eventos de DOMINIO para poder identificarlos
-from modulos.referidos.dominio.eventos import ReferidoConfirmado, ReferidoCreado
+# Importamos el nuevo evento unificado
+from modulos.referidos.infraestructura.schema.v1.eventos_tracking import ReferidoProcesado
+
+
 
 # Importar configuración de Pulsar
 from config.pulsar_config import pulsar_config
@@ -32,116 +30,27 @@ class Despachador:
         publicador.send(mensaje)
         cliente.close()
 
-    def publicar_evento(self, evento, topico):
-        print('===================================================================')
-        print(f'¡DESPACHADOR: Publicando evento en el tópico {topico}! evento: {evento}')
-        print('===================================================================')
-        # =======================================
-        # Determinamos el tipo de evento de dominio para saber qué payload crear
-        if isinstance(evento, ReferidoCreado):
-            payload = EventoReferidoCreadoPayload(
-                referido_id=str(evento.idReferido),
-                id_afiliado=str(evento.idSocio),
-                tipo_accion=str(evento.tipoEvento),
-                detalle_accion=f"Monto: {evento.monto}, Estado: {evento.estado}",
-                fecha_creacion=int(unix_time_millis(evento.fecha_creacion))
-            )
-            evento_integracion = EventoReferidoCreado(data=payload)
-        elif isinstance(evento, ReferidoConfirmado):
-            payload = EventoReferidoConfirmadoPayload(
-                referido_id=str(evento.referido_id),
-                id_afiliado=str(evento.id_afiliado),
-                tipo_accion=str(evento.tipo_accion),
-                detalle_accion=str(evento.detalle_accion),
-                fecha_actualizacion=int(unix_time_millis(evento.fecha_actualizacion))
-            )
-            evento_integracion = EventoReferidoConfirmado(data=payload)
-        else:
-            # Si no reconocemos el evento, no hacemos nada.
-            # Podríamos también lanzar un error.
-            return
-
-        # Publicamos el evento de integración que acabamos de crear
-        self._publicar_mensaje(evento_integracion, topico)
-
-    def publicar_comando(self, comando, topico):
-        print('===================================================================')
-        print(f'¡DESPACHADOR: Publicando comando en el tópico {topico}! comando: {comando}')
-        print('===================================================================')
-        # =======================================
-        if isinstance(comando, ComandoCrearReferido):
-            comando_payload = ComandoCrearReferidoPayload(
-                id_referido=str(comando.id_referido),
-                id_usuario=str(comando.id_usuario),
-                tipo_accion=str(comando.tipo_accion),
-                fecha_accion=int(unix_time_millis(comando.fecha_accion)),
-                detalle_accion=str(comando.detalle_accion)
-            )
-            comando = ComandoConfirmarReferido(data=comando_payload)
-        elif isinstance(comando, ComandoConfirmarReferido):
-            comando_payload = ComandoConfirmarReferidoPayload(
-                id_referido=str(comando.id_referido),
-                id_usuario=str(comando.id_usuario),
-                tipo_accion=str(comando.tipo_accion),
-                fecha_accion=int(unix_time_millis(comando.fecha_accion)),
-                detalle_accion=str(comando.detalle_accion)
-            )
-            comando = ComandoConfirmarReferido(data=comando_payload)
-        else:
-            # Si no reconocemos el comando, no hacemos nada.
-            # Podríamos también lanzar un error.
-            return
-        self._publicar_mensaje(comando, topico)
-
-    def publicar_venta_confirmada(self, datos: dict):
-        """
-        Publica evento VentaReferidaConfirmada al tópico eventos-referido-confirmado
-        
-        Args:
-            datos: Dict con idReferido, idSocio, monto, fechaConfirmacion
-        """
-        try:
-            print(f"📤 [DESPACHADOR] Publicando VentaReferidaConfirmada: {datos}")
-            
-            # Generar UUID único para el evento
-            import uuid
-            evento_id = str(uuid.uuid4())
-            
-            evento = VentaReferidaConfirmada(
-                idEvento=datos['idEvento'],  # UUID único para el evento
-                idSocio=datos['idSocio'],
-                monto=datos['monto'],  # Usar 'monto' directamente
-                fechaEvento=datos['fechaEvento']  # Mapear fechaConfirmacion a fechaEvento
-            )
-            
-            self._publicar_mensaje(evento, 'eventos-referido-confirmado')
-            print(f"✅ [DESPACHADOR] VentaReferidaConfirmada publicada exitosamente!")
-            
-        except Exception as e:
-            print(f"❌ [DESPACHADOR] Error publicando VentaReferidaConfirmada: {e}")
-            raise e
     
-    def publicar_venta_rechazada(self, datos: dict):
+
+    def publicar_referido_procesado(self, datos: dict, estado: str):
         """
-        Publica evento VentaReferidaRechazada al tópico eventos-referido-rechazado
-        
-        Args:
-            datos: Dict con idReferido, idSocio, motivo, fechaRechazo
+        Publica un evento ReferidoProcesado al tópico de eventos-referido.
         """
         try:
-            print(f"📤 [DESPACHADOR] Publicando VentaReferidaRechazada: {datos}")
+            print(f"📤 [DESPACHADOR] Publicando ReferidoProcesado con estado '{estado}': {datos}")
             
-            # Generar UUID único para el evento
-            import uuid
-            evento_id = str(uuid.uuid4())
-            
-            evento = VentaReferidaRechazada(
-                idEvento=evento_id  # Solo idEvento según especificación
+            evento = ReferidoProcesado(
+                idTransaction=datos.get('idTransaction'),
+                idEvento=datos.get('idEvento'),
+                idSocio=datos.get('idSocio'),
+                monto=datos.get('monto'),
+                estado_referido=estado,
+                fechaEvento=datos.get('fechaEvento')
             )
             
-            self._publicar_mensaje(evento, 'eventos-referido-rechazado')
-            print(f"✅ [DESPACHADOR] VentaReferidaRechazada publicada exitosamente!")
+            self._publicar_mensaje(evento, 'eventos-referido')
+            print(f"✅ [DESPACHADOR] Evento ReferidoProcesado publicado exitosamente!")
             
         except Exception as e:
-            print(f"❌ [DESPACHADOR] Error publicando VentaReferidaRechazada: {e}")
+            print(f"❌ [DESPACHADOR] Error publicando ReferidoProcesado: {e}")
             raise e

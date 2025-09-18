@@ -1,5 +1,6 @@
 from pydispatch import dispatcher
 from .handlers import HandlerReferidosIntegracion
+from .handlers_comandos import HandlerReferidoCommand
 from modulos.referidos.dominio.eventos import ReferidoCreado, ReferidoConfirmado
 
 # --- ¡ESTA ES LA CORRECCIÓN CLAVE! ---

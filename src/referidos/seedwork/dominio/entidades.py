@@ -14,10 +14,15 @@ import uuid
 
 @dataclass
 class Entidad:
-    id: uuid.UUID = field(hash=True)
     _id: uuid.UUID = field(init=False, repr=False, hash=True)
-    fecha_creacion: datetime =  field(default=datetime.now())
-    fecha_actualizacion: datetime = field(default=datetime.now())
+    fecha_creacion: datetime =  field(default_factory=datetime.now)
+    fecha_actualizacion: datetime = field(default_factory=datetime.now)
+
+    def __post_init__(self, id: uuid.UUID = None):
+        if id is not None:
+            self._id = id
+        elif not hasattr(self, '_id') or self._id is None:
+            self._id = self.siguiente_id()
 
     @classmethod
     def siguiente_id(self) -> uuid.UUID:
@@ -28,15 +33,19 @@ class Entidad:
         return self._id
 
     @id.setter
-    def id(self, id: uuid.UUID) -> None:
-        if not IdEntidadEsInmutable(self).es_valido():
+    def id(self, value: uuid.UUID) -> None:
+        if not hasattr(self, '_id') or self._id is None:
+            self._id = value
+        elif self._id != value:
             raise IdDebeSerInmutableExcepcion()
-        self._id = self.siguiente_id()
         
 
 @dataclass
 class AgregacionRaiz(Entidad, ValidarReglasMixin):
     eventos: list[EventoDominio] = field(default_factory=list)
+
+    def __post_init__(self, id: uuid.UUID = None):
+        super().__post_init__(id=id)
 
     def agregar_evento(self, evento: EventoDominio):
         self.eventos.append(evento)

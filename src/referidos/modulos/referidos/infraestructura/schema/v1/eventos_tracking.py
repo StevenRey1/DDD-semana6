@@ -65,3 +65,24 @@ class VentaReferidaRechazada(Record):
     }
     """
     idEvento = String()
+
+class ReferidoProcesado(EventoIntegracion):
+    """
+    Evento publicado cuando un referido es procesado (confirmado o rechazado).
+    Tópico: eventos-referido
+    Estructura según especificación:
+    {
+      "idTransaction": "222e4567-e89b-12d3-a456-98546546544",
+      "idEvento": "uuid",
+      "idSocio": "uuid",
+      "monto": 123.45,
+      "estado_referido": "confirmado | rechazado",
+      "fechaEvento": "2025-09-09T20:00:00Z"
+    }
+    """
+    idTransaction = String()
+    idEvento = String()
+    idSocio = String()
+    monto = Float()
+    estado_referido = String()
+    fechaEvento = String()
