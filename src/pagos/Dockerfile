@@ -11,15 +11,15 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copiar e instalar dependencias
-COPY src/pagos/requirements.txt .
+COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copiar código fuente
-COPY src/pagos/ /app/src/pagos/
+COPY . /app/
 
 # Configurar variables de entorno
-ENV PYTHONPATH=/app/src
+ENV PYTHONPATH=/app
 
 # Crear usuario no-root para seguridad
 RUN groupadd -r pagos && useradd -r -g pagos pagos
@@ -30,4 +30,4 @@ USER pagos
 EXPOSE 8080
 
 # Comando por defecto
-CMD ["uvicorn", "pagos.main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]

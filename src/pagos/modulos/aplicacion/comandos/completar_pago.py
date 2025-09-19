@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from datetime import datetime
 from seedworks.aplicacion.comandos import Comando
 
-class SolicitarPagoCommand(BaseModel, Comando):
+class CompletarPagoCommand(BaseModel, Comando):
     idEvento: str
     idSocio: str
     monto: float
