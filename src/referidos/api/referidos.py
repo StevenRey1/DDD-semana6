@@ -54,7 +54,8 @@ def generar_referido(idSocio):
         comando = ReferidoCommand(
             comando="Iniciar",
             idSocio=idSocio,
-            data=data_dto
+            data=data_dto,
+            idTransaction=payload.get('idTransaction')
         )
             
         ejecutar_commando(comando)
@@ -98,7 +99,8 @@ def cancelar_referido(idSocio):
         comando = ReferidoCommand(
             comando="Cancelar",
             idSocio=idSocio,
-            data=data_dto
+            data=data_dto,
+            idTransaction=payload.get('idTransaction')
         )
             
         ejecutar_commando(comando)

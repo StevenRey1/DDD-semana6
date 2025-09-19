@@ -47,6 +47,7 @@ class HandlerReferidoCommand(Handler):
             # Publicar evento ReferidoProcesado como confirmado
             despachador.publicar_referido_procesado(
                 datos={
+                    "idTransaction": str(comando.idTransaction) if comando.idTransaction else None,
                     "idEvento": str(comando.data.idEvento),
                     "idSocio": str(comando.idSocio),
                     "monto": comando.data.monto,
@@ -79,6 +80,7 @@ class HandlerReferidoCommand(Handler):
             # Publicar evento ReferidoProcesado como rechazado
             despachador.publicar_referido_procesado(
                 datos={
+                    "idTransaction": str(comando.idTransaction) if comando.idTransaction else None,
                     "idEvento": str(comando.data.idEvento),
                     "idSocio": str(comando.idSocio),
                     "monto": comando.data.monto,

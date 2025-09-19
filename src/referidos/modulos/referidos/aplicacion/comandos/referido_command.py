@@ -18,3 +18,4 @@ class ReferidoCommand(Comando):
     comando: str
     idSocio: str
     data: ReferidoCommandDTO
+    idTransaction: Optional[str] = field(default=None)
