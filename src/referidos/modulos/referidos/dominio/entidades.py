@@ -25,7 +25,7 @@ class Referido(AgregacionRaiz):
         self.idReferido = referido.idReferido
         self.idEvento = referido.idEvento
         self.monto = referido.monto
-        self.estado = EstadoReferido.PENDIENTE
+        self.estado = EstadoReferido.CONFIRMADO
         self.fechaEvento = referido.fechaEvento
         self.tipoEvento = referido.tipoEvento
 

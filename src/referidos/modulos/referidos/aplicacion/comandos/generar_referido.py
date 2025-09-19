@@ -11,6 +11,8 @@ from seedwork.aplicacion.comandos import Comando
 from dataclasses import dataclass, field
 from seedwork.aplicacion.comandos import ejecutar_commando as comando
 from modulos.referidos.infraestructura.repositorios import RepositorioReferidos
+from modulos.referidos.dominio.objetos_valor import EstadoReferido, TipoEvento
+
 import datetime
 
 @dataclass
@@ -107,10 +109,11 @@ class GenerarReferidoHandler(CrearReferidoBaseHandler):
                 'idReferido': comando.idReferido,
                 'idSocio': comando.idSocio,
                 'monto': comando.monto * 0.1,  # 10% de comisión por ejemplo
+                'tipoEvento': TipoEvento.VENTA.value,
                 'fechaEvento': datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
             }
             
-            despachador.publicar_venta_confirmada(datos_confirmacion)
+            despachador.publicar_referido_procesado(datos_confirmacion, estado='confirmado')
             print(f"✅ Referido {comando.idReferido} confirmado automáticamente!")
             
         except Exception as e:

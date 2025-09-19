@@ -41,21 +41,43 @@ class HandlerReferidoCommand(Handler):
             )
             mapeador_referido = MapeadorReferido()
             referido = fabrica_referidos.crear_objeto(referido_dto, mapeador_referido)
-            repositorio.agregar(referido)
-            UnidadTrabajoPuerto.commit()
 
-            # Publicar evento ReferidoProcesado como confirmado
-            despachador.publicar_referido_procesado(
-                datos={
-                    "idTransaction": str(comando.idTransaction) if comando.idTransaction else None,
-                    "idEvento": str(comando.data.idEvento),
-                    "idSocio": str(comando.idSocio),
-                    "monto": comando.data.monto,
-                    "fechaEvento": comando.data.fechaEvento.isoformat()
-                },
-                estado="confirmado"
+            # Verificar si el referido ya existe
+            referido_existente = repositorio.obtener_por_socio_referido_evento(
+                uuid.UUID(comando.idSocio),
+                uuid.UUID(referido_id),
+                uuid.UUID(comando.data.idEvento)
             )
-            print(f"✅ [HANDLER] Referido {referido_id} iniciado y confirmado.")
+
+            if referido_existente:
+                print(f"⚠️ [HANDLER] Referido {referido_id} ya existe. Publicando evento de rechazo.")
+                despachador.publicar_referido_procesado(
+                    datos={
+                        "idTransaction": str(comando.idTransaction) if comando.idTransaction else None,
+                        "idEvento": str(comando.data.idEvento),
+                        "idSocio": str(comando.idSocio),
+                        "monto": comando.data.monto,
+                        "fechaEvento": comando.data.fechaEvento.isoformat()
+                    },
+                    estado="rechazado"
+                )
+                # No agregar al repositorio si ya existe
+            else:
+                repositorio.agregar(referido)
+                UnidadTrabajoPuerto.commit()
+
+                # Publicar evento ReferidoProcesado como confirmado
+                despachador.publicar_referido_procesado(
+                    datos={
+                        "idTransaction": str(comando.idTransaction) if comando.idTransaction else None,
+                        "idEvento": str(comando.data.idEvento),
+                        "idSocio": str(comando.idSocio),
+                        "monto": comando.data.monto,
+                        "fechaEvento": comando.data.fechaEvento.isoformat()
+                    },
+                    estado="confirmado"
+                )
+                print(f"✅ [HANDLER] Referido {referido_id} iniciado y confirmado.")
 
         elif comando.comando == "Cancelar":
             try:
