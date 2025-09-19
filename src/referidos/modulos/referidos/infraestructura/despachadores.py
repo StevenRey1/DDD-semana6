@@ -6,7 +6,7 @@ import datetime
 
 
 # Importamos el nuevo evento unificado
-from modulos.referidos.infraestructura.schema.v2.eventos_simple import ReferidoProcesadoSimple
+from modulos.referidos.infraestructura.schema.v2.eventos_tracking import ReferidoProcesado
 
 
 
@@ -37,9 +37,9 @@ class Despachador:
         Publica un evento ReferidoProcesado al tópico de eventos-referido.
         """
         try:
-            print(f"📤 [DESPACHADOR] Publicando ReferidoProcesadoSimple con estado '{estado}': {datos}")
+            print(f"📤 [DESPACHADOR] Publicando ReferidoProcesado con estado '{estado}': {datos}")
             
-            evento = ReferidoProcesadoSimple(
+            evento = ReferidoProcesado(
                 idTransaction=datos.get('idTransaction'),
                 idEvento=datos.get('idEvento'),
                 idSocio=datos.get('idSocio'),
@@ -48,8 +48,7 @@ class Despachador:
                 fechaEvento=datos.get('fechaEvento')
             )
             
-            # Usar tópico simple para evitar conflictos de schema
-            self._publicar_mensaje(evento, 'eventos-referido-simple')  # ✅ Tópico totalmente limpio
+            self._publicar_mensaje(evento, 'eventos-referido')
             print(f"✅ [DESPACHADOR] Evento ReferidoProcesado publicado exitosamente!")
             
         except Exception as e:
