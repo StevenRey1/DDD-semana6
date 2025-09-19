@@ -45,8 +45,9 @@ class Mutation:
         comando = dict(
             comando="Iniciar",  # Comando enum: Iniciar/Cancelar
             data=dict(
+                idTransaction=str(uuid.uuid4()),  # Nuevo ID de transacción
                 tipoEvento=tipoEvento,
-                id_evento=None,  # Será generado por eventoMS
+                idEvento=None,  # Será generado por eventoMS
                 idReferido=idReferido,
                 idSocio=idSocio,
                 monto=float(monto),
