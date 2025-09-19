@@ -96,27 +96,6 @@ services:
       timeout: 5s
       retries: 5
   
-  # Base de datos para worker de pagos
-  pagos-worker-db:
-    image: postgres:15-alpine
-    container_name: pagos-worker-db
-    environment:
-      POSTGRES_DB: alpespartners
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres123
-    ports:
-      - "5437:5432"  # Puerto único para evitar conflictos
-    volumes:
-      - pagos_worker_db_data:/var/lib/postgresql/data
-      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
-    networks:
-      - alpespartners-shared
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
   # Apache Pulsar compartido
   pulsar:
     image: apachepulsar/pulsar:3.1.0
@@ -311,49 +290,6 @@ services:
       retries: 3
       start_period: 40s
 
-
-
-  # Worker de pagos para procesar eventos
-  pagos-worker:
-    build:
-      context: .
-      dockerfile: src/pagos/Dockerfile
-    container_name: pagos-worker-shared
-    command: ["python", "-m", "pagos.modulos.infraestructura.worker_referidos_pattern"]
-    environment:
-      # Configuración del worker
-      AMBIENTE: desarrollo
-      DEBUG: "true"
-      LOG_LEVEL: DEBUG
-      
-      # Aplicación configuration
-      PYTHONPATH: /app/src
-      SERVICE_NAME: pagos-worker
-      
-      # Base de datos compartida
-      DB_URL: postgresql+psycopg2://postgres:postgres123@pagos-worker-db:5432/alpespartners
-
-      # Pulsar compartido
-      PULSAR_URL: pulsar://pulsar:6650
-      TOPIC_PAGOS: eventos-pago
-      TOPIC_REFERIDO_CONFIRMADO: eventos-referido-confirmado
-      OUTBOX_BATCH_SIZE: 100
-
-      # Servicios habilitados
-      WAIT_FOR_SERVICES: "true"
-    volumes:
-      - ./src/pagos:/app/src/pagos
-    depends_on:
-      pagos-worker-db:
-        condition: service_healthy
-      pulsar:
-        condition: service_healthy
-      pagos:
-        condition: service_healthy
-    networks:
-      - alpespartners-shared
-    restart: unless-stopped
-
   # ========================================
   # MICROSERVICIO DE NOTIFICACIONES
   # ========================================
@@ -454,8 +390,6 @@ volumes:
   notificaciones_db_data:
     driver: local
   pagos_db_data:
-    driver: local
-  pagos_worker_db_data:
     driver: local
 
 # ========================================

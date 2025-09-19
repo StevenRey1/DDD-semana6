@@ -6,7 +6,7 @@ from config.pulsar_config import pulsar_config
 def send_test_event():
     client = pulsar.Client(**pulsar_config.client_config)
     producer = client.create_producer(
-        'eventos-tracking',
+        'comando-referido',
         schema=AvroSchema(EventoRegistrado)
     )
 
@@ -26,7 +26,7 @@ def send_test_event():
     # Si tu esquema EventoRegistrado tiene idTransaction, agrégalo así:
     # evento.idTransaction = "5b967ffb-4a80-4843-a59a-dc555b45493f"
     producer.send(evento)
-    print("Mensaje enviado a eventos-tracking")
+    print("Mensaje enviado a comando-referido")
     client.close()
 
 if __name__ == "__main__":

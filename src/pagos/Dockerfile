@@ -11,12 +11,12 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copiar e instalar dependencias
-COPY requirements.txt .
+COPY src/pagos/requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copiar código fuente
-COPY . /app/
+COPY src/pagos/ /app/
 
 # Configurar variables de entorno
 ENV PYTHONPATH=/app

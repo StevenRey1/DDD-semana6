@@ -16,23 +16,23 @@ from config.pulsar_config import pulsar_config
 
 def suscribirse_a_eventos_tracking():
     """
-    Consumidor principal: Escucha EventoRegistrado del tópico eventos-tracking
+    Consumidor principal: Escucha EventoRegistrado del tópico comando-referido
     Según especificación del Microservicio 2: Seguimiento de Referidos
     """
     cliente = None
     try:
         cliente = pulsar.Client(**pulsar_config.client_config)
         consumidor = cliente.subscribe(
-            'eventos-tracking',  # Tópico según especificación
+            'comando-referido',  # Tópico según especificación
             consumer_type=_pulsar.ConsumerType.Shared,
-            subscription_name='referidos-sub-eventos-tracking',
+            subscription_name='referidos-sub-comando-referido',
             schema=AvroSchema(EventoRegistrado),
             receiver_queue_size=1000,
             max_total_receiver_queue_size_across_partitions=50000,
             consumer_name='referidos-consumer'
         )
 
-        print("🔄 Consumidor de eventos-tracking iniciado para referidos")
+        print("🔄 Consumidor de comando-referido iniciado para referidos")
         
         while True:
             mensaje = consumidor.receive()
@@ -63,7 +63,7 @@ def suscribirse_a_eventos_tracking():
                 
         cliente.close()
     except Exception as e:
-        logging.error('ERROR: Suscribiéndose al tópico eventos-tracking')
+        logging.error('ERROR: Suscribiéndose al tópico comando-referido')
         traceback.print_exc()
         if cliente:
             cliente.close()
@@ -132,9 +132,9 @@ def suscribirse_a_comandos_referidos():
 def suscribirse_a_eventos_referidos():
     cliente = None
     try:
-        cliente = pulsar.Client(f'pulsar://{utils.broker_host()}:6650')
+        cliente = pulsar.Client(**pulsar_config.client_config)
         consumidor = cliente.subscribe(
-            'eventos-referidos', # <--- TÓPICO DE COMANDOS DE REFERIDOS
+            'eventos-referido', # <--- TÓPICO DE COMANDOS DE REFERIDOS
             consumer_type=_pulsar.ConsumerType.Shared,
             subscription_name='referidos-sub-eventos-referidos', # Nombre único
             schema=AvroSchema(ComandoCrearReferido) # Schema de comandos de referido

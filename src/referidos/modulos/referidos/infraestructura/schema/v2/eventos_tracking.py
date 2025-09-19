@@ -32,7 +32,7 @@ class EventoRegistradoPayload(Record):
 
 class EventoRegistrado(EventoIntegracion):
     """
-    Esquema para EventoRegistrado que se recibe del tópico eventos-tracking
+    Esquema para EventoRegistrado que se recibe del tópico comando-referido
     """
     idTransaction = String()
     data = EventoRegistradoPayload()
