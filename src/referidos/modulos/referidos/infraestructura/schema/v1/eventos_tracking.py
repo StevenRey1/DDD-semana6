@@ -21,7 +21,8 @@ class EventoRegistradoPayload(Record):
         "estado": "pendiente",
         "fechaEvento": "2025-09-09T20:00:00Z"
     }
-    """
+    """    
+    idTransaction = String(required=False)
     idEvento = String()
     tipoEvento = String()
     idReferido = String()

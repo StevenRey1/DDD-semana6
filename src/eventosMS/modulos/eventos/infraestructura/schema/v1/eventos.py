@@ -5,6 +5,7 @@ from pulsar.schema import Record, String, Float
 from seedwork.infraestructura.schema.v1.eventos import EventoIntegracion
 
 class EventoRegistradoPayload(Record):
+    idTransaction = String(required=False)
     idEvento = String()
     tipoEvento = String()
     idReferido = String()
