@@ -4,9 +4,9 @@ import traceback
 import json
 from pulsar.schema import *
 
-from modulos.referidos.infraestructura.schema.v1.eventos import EventoReferidoConfirmado, EventoReferidoCreado
-from modulos.referidos.infraestructura.schema.v1.eventos_tracking import EventoRegistrado
-from modulos.referidos.infraestructura.schema.v1.comandos import ComandoCrearReferido
+from modulos.referidos.infraestructura.schema.v2.eventos import EventoReferidoConfirmado, EventoReferidoCreado
+from modulos.referidos.infraestructura.schema.v2.eventos_tracking import EventoRegistrado
+from modulos.referidos.infraestructura.schema.v2.comandos import ComandoCrearReferido
 from modulos.referidos.aplicacion.comandos.generar_referido import GenerarReferidoCommand
 from seedwork.infraestructura import utils
 from seedwork.aplicacion.comandos import ejecutar_commando
@@ -38,9 +38,7 @@ def suscribirse_a_eventos_tracking():
             mensaje = consumidor.receive()
             try:
                 evento_data = mensaje.value()
-                print(f"📨 EventoRegistrado recibido: {evento_data}")
-                
-                # Filtrar solo eventos de tipo registroUsuario o compra según especificación
+                print(f"📨 EventoRegistrado recibido: {evento_data}")     
                 if evento_data.data.tipoEvento in ['registroUsuario', 'compra', 'venta_creada']:
                     # Crear comando para generar referido
                     comando = GenerarReferidoCommand(
@@ -52,7 +50,6 @@ def suscribirse_a_eventos_tracking():
                         estado=evento_data.data.estado,
                         fechaEvento=evento_data.data.fechaEvento
                     )
-                    
                     # Ejecutar comando
                     ejecutar_commando(comando)
                     print(f"✅ Referido generado para evento: {evento_data.data.idEvento}")

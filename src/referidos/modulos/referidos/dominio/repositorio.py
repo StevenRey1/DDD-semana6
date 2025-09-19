@@ -11,3 +11,7 @@ class RepositorioReferidos(Repositorio, ABC):
     @abstractmethod
     def obtener_por_id_referido(self, idReferido: UUID):
         ...
+
+    @abstractmethod
+    def obtener_por_socio_referido_evento(self, idSocio: UUID, idReferido: UUID, idEvento: UUID):
+        ...
