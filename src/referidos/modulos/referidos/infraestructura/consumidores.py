@@ -4,9 +4,9 @@ import traceback
 import json
 from pulsar.schema import *
 
-from modulos.referidos.infraestructura.schema.v1.eventos import EventoReferidoConfirmado, EventoReferidoCreado
-from modulos.referidos.infraestructura.schema.v1.eventos_tracking import EventoRegistrado
-from modulos.referidos.infraestructura.schema.v1.comandos import ComandoCrearReferido
+from modulos.referidos.infraestructura.schema.v2.eventos import EventoReferidoConfirmado, EventoReferidoCreado
+from modulos.referidos.infraestructura.schema.v2.eventos_tracking import EventoRegistrado
+from modulos.referidos.infraestructura.schema.v2.comandos import ComandoCrearReferido
 from modulos.referidos.aplicacion.comandos.generar_referido import GenerarReferidoCommand
 from seedwork.infraestructura import utils
 from seedwork.aplicacion.comandos import ejecutar_commando

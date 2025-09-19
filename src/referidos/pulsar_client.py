@@ -9,7 +9,7 @@ sys.path.append(str(project_root))
 
 # Import PulsarConfig from the referidos module
 from config.pulsar_config import pulsar_config
-from modulos.referidos.infraestructura.schema.v1.eventos_tracking import ReferidoProcesado
+from modulos.referidos.infraestructura.schema.v2.eventos_tracking import ReferidoProcesado
 
 def consume_referido_events():
     client = None

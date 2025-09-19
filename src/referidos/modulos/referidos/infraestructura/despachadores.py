@@ -6,7 +6,7 @@ import datetime
 
 
 # Importamos el nuevo evento unificado
-from modulos.referidos.infraestructura.schema.v1.eventos_tracking import ReferidoProcesado
+from modulos.referidos.infraestructura.schema.v2.eventos_tracking import ReferidoProcesado
 
 
 
