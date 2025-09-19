@@ -46,7 +46,8 @@ class PagoCommandHandler(PagoBaseHandler):
                 idSocio=comando.data.idSocio,
                 monto=comando.data.monto,
                 estado="solicitado",
-                fechaPago=comando.data.fechaEvento
+                fechaPago=comando.data.fechaEvento,
+                idTransaction=comando.idTransaction
             )
             session.add(pago_orm)
             session.commit()

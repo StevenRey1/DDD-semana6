@@ -16,6 +16,7 @@ class PagoORM(Base):
     monto = Column(Numeric(18,2), nullable=False)
     estado = Column(String, nullable=False)
     fechaPago = Column(DateTime(timezone=True), nullable=False)
+    idTransaction = Column(String, nullable=True)  # Nuevo campo según especificación
 
 class OutboxORM(Base):
     __tablename__ = "outbox"
@@ -42,7 +43,8 @@ class RepositorioPagosPG(RepoPagos):
                     idSocio=pago_orm.idSocio,
                     monto=float(pago_orm.monto),
                     estado=pago_orm.estado,
-                    fechaPago=pago_orm.fechaPago
+                    fechaPago=pago_orm.fechaPago,
+                    idTransaction=pago_orm.idTransaction
                 )
             return None
 
@@ -52,6 +54,7 @@ class RepositorioPagosPG(RepoPagos):
             if pago_orm:
                 pago_orm.estado = pago.estado
                 pago_orm.fechaPago = pago.fechaPago
+                pago_orm.idTransaction = pago.idTransaction
             else:
                 pago_orm = PagoORM(
                     idPago=pago.idPago,
@@ -59,7 +62,8 @@ class RepositorioPagosPG(RepoPagos):
                     idSocio=pago.idSocio,
                     monto=pago.monto,
                     estado=pago.estado,
-                    fechaPago=pago.fechaPago
+                    fechaPago=pago.fechaPago,
+                    idTransaction=pago.idTransaction
                 )
                 session.add(pago_orm)
             session.commit()

@@ -9,7 +9,7 @@ from pulsar.schema import AvroSchema
 from pagos.seedworks.aplicacion.comandos import ejecutar_commando
 from ..aplicacion.comandos.completar_pago import CompletarPagoCommand
 from pagos.config.pulsar_config import settings
-from pagos.schema.eventos_referidos import VentaReferidaConfirmada
+from pagos.schema.eventos_referidos_v2 import ReferidoProcesado  # ✅ Usar schema v2
 import logging
 
 def suscribirse_a_eventos_referido_confirmado():
@@ -23,21 +23,21 @@ def suscribirse_a_eventos_referido_confirmado():
         cliente = pulsar.Client(settings.PULSAR_URL)
         
         consumidor = cliente.subscribe(
-            settings.TOPIC_REFERIDO_CONFIRMADO,
+            'eventos-referido-v4',  # ✅ Usar el mismo tópico que referidos
             consumer_type=_pulsar.ConsumerType.Shared,
             subscription_name='pagos-sub-referidos',
-            schema=AvroSchema(VentaReferidaConfirmada),
+            schema=AvroSchema(ReferidoProcesado),  # ✅ Usar schema v2
             initial_position=_pulsar.InitialPosition.Earliest
         )
 
-        print("✅ [CONSUMER REFACTORIZADO] Conectado al tópico 'eventos-referido-confirmado'")
+        print("✅ [CONSUMER REFACTORIZADO] Conectado al tópico 'eventos-referido-v4'")
 
         while True:
             try:
                 mensaje = consumidor.receive(timeout_millis=5000)
                 
                 if mensaje:
-                    print(f'📨 [CONSUMER REFACTORIZADO] VentaReferidaConfirmada recibido')
+                    print(f'📨 [CONSUMER REFACTORIZADO] ReferidoProcesado recibido')  # ✅ Actualizar mensaje
                     datos = mensaje.value()
                     
                     try:

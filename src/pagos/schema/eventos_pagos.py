@@ -1,5 +1,5 @@
 """
-Schemas Avro para eventos que publica el microservicio de pagos
+Schema Avro para el evento que publica el microservicio de pagos
 Según especificación actualizada
 """
 
@@ -7,9 +7,19 @@ from pulsar.schema import Record, String, Float
 
 class PagoProcesado(Record):
     """
-    Evento unificado publicado cuando un pago es procesado.
-    Incluye estados: solicitado | completado | rechazado
+    Evento publicado cuando un pago es procesado.
+    Estados: solicitado | completado | rechazado
     Tópico: eventos-pago
+    Estructura según especificación:
+    {
+      "idTransaction": "222e4567-e89b-12d3-a456-98546546544",
+      "idPago": "uuid",
+      "idEvento": "uuid",
+      "idSocio": "uuid", 
+      "monto": 123.45,
+      "estado_pago": "solicitado | completado | rechazado",
+      "fechaPago": "2025-09-09T20:00:00Z"
+    }
     """
     idTransaction = String()  # Opcional en el contrato, obligatorio en Avro
     idPago = String()
@@ -18,23 +28,3 @@ class PagoProcesado(Record):
     monto = Float()
     estado_pago = String()  # "solicitado | completado | rechazado"
     fechaPago = String()
-
-# Mantener eventos legacy por compatibilidad (deprecados)
-class PagoCompletado(Record):
-    """DEPRECADO: Usar PagoProcesado"""
-    idPago = String()
-    idEvento = String() 
-    idSocio = String()
-    monto = Float()
-    estado = String()
-    fechaPago = String()
-
-class PagoRechazado(Record):
-    """DEPRECADO: Usar PagoProcesado"""
-    idPago = String()
-    idEvento = String()
-    idSocio = String() 
-    monto = Float()
-    estado = String()
-    fechaPago = String()
-    motivo = String()
