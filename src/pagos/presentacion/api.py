@@ -1,10 +1,8 @@
-from fastapi import APIRouter, Depends, status, HTTPException
-from sqlalchemy.orm import Session
-from ..modulos.aplicacion.dto import PagoIntegracion
-from ..modulos.aplicacion.comandos.solicitar_pago import SolicitarPagoCommand
-from ..modulos.aplicacion.queries.obtener_estado_pago import ObtenerEstadoPagoQuery
-from ..modulos.infraestructura.repositorio_postgresql import RepositorioPagosPG
-from ..config.pulsar_config import settings
+from fastapi import APIRouter, status, HTTPException
+from seedworks.aplicacion.comandos import ejecutar_commando
+from seedworks.aplicacion.queries import ejecutar_query
+from modulos.aplicacion.comandos.pago_command import PagoCommand
+from modulos.aplicacion.queries.obtener_estado_pago import ObtenerEstadoPagoQuery
 
 router = APIRouter()
 
@@ -13,33 +11,34 @@ router = APIRouter()
 def health_check():
     return {"status": "ok", "service": "pagos"}
 
-# Dependency para obtener sesión DB
-from fastapi import Request
-
-def get_db(request: Request):
-    repo: RepositorioPagosPG = request.app.state.repo
-    return repo.SessionLocal()
-
 @router.post("/pagos", status_code=status.HTTP_202_ACCEPTED)
-def solicitar_pago(cmd: SolicitarPagoCommand, db: Session = Depends(get_db)):
-    repo = RepositorioPagosPG(settings.DB_URL)
-    pago = repo.by_id(cmd.idEvento)
-    if pago:
-        return {"operation_id": pago.idPago, "status_url": f"/pagos/{pago.idPago}"}
-    pago = repo.guardar(Pago.solicitar(cmd.idEvento, cmd.idSocio, cmd.monto))
-    # Envelope y outbox
-    envelope = {
-        "meta": {"event_id": pago.idPago, "schema_version": "v1", "occurred_at": int(pago.fechaPago.timestamp()*1000), "producer": settings.SERVICE_NAME, "correlation_id": cmd.idEvento, "causation_id": pago.idPago},
-        "key": pago.idPago,
-        "state": PagoIntegracion(**pago.__dict__).dict()
-    }
-    repo.outbox_add(settings.TOPIC_PAGOS, pago.idPago, json.dumps(envelope))
-    return {"operation_id": pago.idPago, "status_url": f"/pagos/{pago.idPago}"}
+def procesar_pago_command(cmd: PagoCommand):
+    """
+    Endpoint unificado para PagoCommand según especificación.
+    Maneja comandos "Iniciar" y "Cancelar".
+    """
+    print(f"📥 API recibió PagoCommand: {cmd.comando} para evento {cmd.data.idEvento}")
+    
+    # ✅ Delegación total al sistema CQRS
+    pago = ejecutar_commando(cmd)
+    
+    # Response HTTP 202 Accepted según especificación
+    return {"message": f"Comando {cmd.comando} procesado exitosamente"}
 
-@router.get("/pagos/{idPago}", response_model=PagoIntegracion)
-def obtener_estado_pago(idPago: str, db: Session = Depends(get_db)):
-    repo = RepositorioPagosPG(settings.DB_URL)
-    pago = repo.by_id(idPago)
-    if not pago:
+@router.get("/pagos/{idPago}")
+def obtener_estado_pago(idPago: str, idTransaction: str = None):
+    """
+    Endpoint para ObtenerEstadoPagoQuery según especificación.
+    Response con estructura específica requerida.
+    """
+    print(f"📤 API consultando estado de pago: {idPago}")
+    
+    # ✅ Delegación total al sistema de queries  
+    query = ObtenerEstadoPagoQuery(idPago=idPago, idTransaction=idTransaction)
+    resultado = ejecutar_query(query)
+    
+    if not resultado.resultado:
         raise HTTPException(status_code=404, detail="Pago no encontrado")
-    return PagoIntegracion(**pago.__dict__)
+    
+    # Response según especificación exacta
+    return resultado.resultado

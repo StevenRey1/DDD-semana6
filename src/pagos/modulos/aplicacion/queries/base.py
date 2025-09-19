@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any
+from seedworks.aplicacion.queries import QueryHandler
 
 
 class Query(ABC):
@@ -7,10 +8,13 @@ class Query(ABC):
     pass
 
 
-class QueryHandler(ABC):
-    """Clase base abstracta para todos los manejadores de consultas"""
+class PagoQueryBaseHandler(QueryHandler):
+    """Handler base para queries de pagos"""
     
+    def __init__(self):
+        pass
+
     @abstractmethod
-    async def handle(self, query: Query) -> Any:
-        """Maneja una consulta específica de forma asíncrona"""
+    def handle(self, query: Query) -> Any:
+        """Maneja una consulta específica"""
         pass

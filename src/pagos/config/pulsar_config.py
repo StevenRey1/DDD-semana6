@@ -1,7 +1,7 @@
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    DB_URL: str = "postgresql+psycopg2://pagos:pagos@pagos-db:5432/pagos"
+    DB_URL: str = "postgresql+psycopg2://postgres:postgres@postgres-pagos:5432/pagos_db"
     PULSAR_URL: str = "pulsar://pulsar:6650"
     SERVICE_NAME: str = "pagos-api"
     TOPIC_PAGOS: str = "eventos-pagos"
