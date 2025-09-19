@@ -21,6 +21,8 @@ class EventoRegistrado(EventoDominio):
     ganancia: float = field(default=0.0)
     estado: str = field(default="pendiente")
     fecha_evento: datetime = field(default_factory=datetime.now)
+    comando: str = field(default=None)  # "Iniciar" | "Cancelar"
+    id_transaction: str = field(default=None)
 
     def nombre_evento(self) -> str:
         return "eventos.eventos-tracking"

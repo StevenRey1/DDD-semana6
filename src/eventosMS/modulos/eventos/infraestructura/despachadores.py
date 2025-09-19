@@ -1,5 +1,6 @@
 import pulsar
 from pulsar.schema import *
+import json
 import datetime
 
 # Importamos TODOS los eventos y payloads que este despachador puede manejar

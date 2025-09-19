@@ -7,7 +7,7 @@ from seedwork.aplicacion.dto import Mapeador as AppMap
 from seedwork.dominio.repositorios import Mapeador as RepMap
 
 # Importamos los DTOs de la capa de aplicación
-from .dto import EventoDTO, ActualizarEventoPagoDTO
+from .dto import EventoDTO, ActualizarEventoPagoDTO, EventoTrackingDTO
 
 
 class MapeadorEventoDTOJson(AppMap):
@@ -15,13 +15,30 @@ class MapeadorEventoDTOJson(AppMap):
 
     def externo_a_dto(self, externo: dict) -> EventoDTO:
         fecha_actual = datetime.now().strftime(self._FORMATO_FECHA)
-        evento_dto = EventoDTO(
-            tipo=externo.get('tipoEvento'),
-            id_socio=externo.get('idSocio'),
-            id_referido=externo.get('idReferido'),
-            monto=externo.get('monto'),
-            fecha_evento=externo.get('fechaEvento', fecha_actual)
-        )
+        
+        # Verificar si es el nuevo formato con comando
+        if 'comando' in externo and 'data' in externo:
+            # Nuevo formato con comando
+            data = externo.get('data', {})
+            evento_dto = EventoDTO(
+                tipo=data.get('tipoEvento'),
+                id_socio=data.get('idSocio'),
+                id_referido=data.get('idReferido'),
+                monto=data.get('monto'),
+                fecha_evento=data.get('fechaEvento', fecha_actual),
+                comando=externo.get('comando'),
+                id_transaction=externo.get('idTransaction'),
+                id_evento=data.get('idEvento')
+            )
+        else:
+            # Formato anterior (compatibilidad)
+            evento_dto = EventoDTO(
+                tipo=externo.get('tipoEvento'),
+                id_socio=externo.get('idSocio'),
+                id_referido=externo.get('idReferido'),
+                monto=externo.get('monto'),
+                fecha_evento=externo.get('fechaEvento', fecha_actual)
+            )
         return evento_dto
 
     def dto_a_externo(self, dto: EventoDTO) -> dict:
@@ -125,6 +142,43 @@ class MapeadorActualizarEventoPagoDTOJson(AppMap):
         # Lógica de negocio para calcular ganancia
         # Ejemplo: 10% del monto
         return monto * 0.10
+
+
+class MapeadorEventoTrackingDTOJson(AppMap):
+    """
+    Mapeador para convertir EventoTrackingDTO a formato JSON para Pulsar
+    """
+
+    def dto_a_externo(self, dto: EventoTrackingDTO) -> dict:
+        """
+        Convierte EventoTrackingDTO a formato JSON para eventos-tracking
+        """
+        return {
+            "idTransaction": dto.id_transaction,
+            "idEvento": dto.id_evento,
+            "tipoEvento": dto.tipo_evento,
+            "idReferido": dto.id_referido,
+            "idSocio": dto.id_socio,
+            "monto": dto.monto,
+            "estadoEvento": dto.estado_evento,
+            "fechaEvento": dto.fecha_evento
+        }
+
+    def externo_a_dto(self, externo: dict) -> EventoTrackingDTO:
+        """
+        Convierte datos JSON externos a EventoTrackingDTO
+        """
+        return EventoTrackingDTO(
+            id_transaction=externo.get('idTransaction'),
+            id_evento=externo.get('idEvento', ''),
+            tipo_evento=externo.get('tipoEvento', ''),
+            id_referido=externo.get('idReferido', ''),
+            id_socio=externo.get('idSocio', ''),
+            monto=float(externo.get('monto', 0.0)),
+            estado_evento=externo.get('estadoEvento', ''),
+            fecha_evento=externo.get('fechaEvento', '')
+        )
+
 
 class MapeadorEvento(RepMap):
     _FORMATO_FECHA = '%Y-%m-%dT%H:%M:%SZ'

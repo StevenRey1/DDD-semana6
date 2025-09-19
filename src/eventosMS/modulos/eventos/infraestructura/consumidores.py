@@ -181,7 +181,9 @@ def suscribirse_a_comandos_evento(app):
                             id_socio=evento_dto.id_socio,
                             id_referido=evento_dto.id_referido,
                             monto=evento_dto.monto,
-                            fecha_evento=evento_dto.fecha_evento
+                            fecha_evento=evento_dto.fecha_evento,
+                            comando=comando_tipo,
+                            id_transaction=id_transaction
                         )
                         
                         # Ejecutar comando usando el sistema de comandos
