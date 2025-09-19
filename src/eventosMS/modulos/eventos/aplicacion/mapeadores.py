@@ -60,6 +60,17 @@ class MapeadorEventoDTOJson(AppMap):
             "eventos": eventos_externos
         }
 
+    def comando_a_dto(self, externo: dict) -> EventoDTO:
+        fecha_actual = datetime.now().strftime(self._FORMATO_FECHA)
+        evento_dto = EventoDTO(
+            tipo=externo.get('tipoEvento'),
+            id_socio=externo.get('idSocio'),
+            id_referido=externo.get('idReferido'),
+            monto=externo.get('monto'),
+            fecha_evento=externo.get('fechaEvento', fecha_actual)
+        )
+        return evento_dto
+
 
 class MapeadorActualizarEventoPagoDTOJson(AppMap):
     """
