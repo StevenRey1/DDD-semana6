@@ -1,0 +1,48 @@
+{
+  "type": "record",
+  "name": "EventoCommand",
+  "fields": [
+    {
+      "name": "comando",
+      "type": {
+        "type": "enum",
+        "name": "ComandoTipo",
+        "symbols": ["Iniciar", "Cancelar"]
+      }
+    },
+    {
+      "name": "data",
+      "type": {
+        "type": "record",
+        "name": "EventoData",
+        "fields": [
+          {
+            "name": "tipoEvento",
+            "type": "string"
+          },
+          {
+            "name": "id_evento",
+            "type": ["null", "string"],
+            "default": null
+          },
+          {
+            "name": "idReferido",
+            "type": "string"
+          },
+          {
+            "name": "idSocio",
+            "type": "string"
+          },
+          {
+            "name": "monto",
+            "type": "double"
+          },
+          {
+            "name": "fechaEvento",
+            "type": "string"
+          }
+        ]
+      }
+    }
+  ]
+}

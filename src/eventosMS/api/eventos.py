@@ -25,7 +25,9 @@ def crear_evento():
             id_socio=evento_dto.id_socio,
             id_referido=evento_dto.id_referido,
             monto=evento_dto.monto,
-            fecha_evento=evento_dto.fecha_evento
+            fecha_evento=evento_dto.fecha_evento,
+            comando=evento_dto.comando,
+            id_transaction=evento_dto.id_transaction
         )
         
         ejecutar_commando(comando)
@@ -43,4 +45,4 @@ def dar_eventos_socio_usando_query(id_socio=None):
         return map_evento.lista_dto_a_externo(query_resultado.resultado)
     else:
         # Esto podría devolver una lista de todos los eventos o un error
-        return Response(json.dumps(dict(error="Se requiere un ID de evento")), status=400, mimetype='application/json')
+        return Response(json.dumps({"error": "Se requiere un ID de evento"}), status=400, mimetype='application/json')

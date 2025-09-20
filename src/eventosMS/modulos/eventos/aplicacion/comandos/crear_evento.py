@@ -13,6 +13,8 @@ from seedwork.aplicacion.comandos import ejecutar_commando as comando
 
 from seedwork.infraestructura.uow import UnidadTrabajoPuerto
 
+from typing import Optional
+
 @dataclass
 class CrearEvento(Comando):
     tipo: str
@@ -20,11 +22,14 @@ class CrearEvento(Comando):
     id_referido: str
     monto: float
     fecha_evento: str
+    comando: Optional[str] = None  # "Iniciar" | "Cancelar"
+    id_transaction: Optional[str] = None
 
 class CrearEventoHandler(EventoBaseHandler):
 
     def handle(self, comando: CrearEvento):
         
+        # Crear DTO solo con los campos básicos para la BD (sin comando, id_transaction)
         evento_dto = EventoDTO(
             tipo=comando.tipo,
             id_socio=comando.id_socio,
@@ -33,6 +38,7 @@ class CrearEventoHandler(EventoBaseHandler):
             fecha_evento=comando.fecha_evento
         )
 
+        # Siempre crear el evento en BD (flujo original)
         evento: Evento = self.fabrica_eventos.crear_objeto(evento_dto, MapeadorEvento())
         evento.crear_evento(evento) # Método del agregado que dispara el evento de dominio
 
