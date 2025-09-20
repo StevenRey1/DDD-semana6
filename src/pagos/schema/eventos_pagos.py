@@ -10,14 +10,14 @@ class PagoProcesado(Record):
     Evento publicado cuando un pago es procesado.
     Estados: solicitado | completado | rechazado
     Tópico: eventos-pago
-    Estructura según especificación:
+    Estructura según especificación (camelCase):
     {
       "idTransaction": "222e4567-e89b-12d3-a456-98546546544",
       "idPago": "uuid",
       "idEvento": "uuid",
       "idSocio": "uuid", 
       "monto": 123.45,
-      "estado_pago": "solicitado | completado | rechazado",
+      "estadoPago": "solicitado | completado | rechazado",
       "fechaPago": "2025-09-09T20:00:00Z"
     }
     """
@@ -26,5 +26,5 @@ class PagoProcesado(Record):
     idEvento = String() 
     idSocio = String()
     monto = Float()
-    estado_pago = String()  # "solicitado | completado | rechazado"
+    estadoPago = String()  # "solicitado | completado | rechazado"
     fechaPago = String()

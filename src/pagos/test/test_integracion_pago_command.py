@@ -1,8 +1,10 @@
 """
-Test de integración para PagoCommand API
-Valida el servicio completo en contenedor
+DEPRECADO: Test de integración antiguo basado en un contrato previo (snake_case y campos diferentes).
+Se mantiene el archivo como referencia histórica pero NO debe ejecutarse en la suite actual.
+Marcado con skip global de pytest.
 """
 import pytest
+pytestmark = pytest.mark.skip(reason="Contrato antiguo de PagoCommand; usar test_microservicio_completo.py actualizado")
 import requests
 import time
 import json

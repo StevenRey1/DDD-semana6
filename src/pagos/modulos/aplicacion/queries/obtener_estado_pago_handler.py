@@ -24,17 +24,17 @@ class ObtenerEstadoPagoHandler(PagoQueryBaseHandler):
                 print(f"❌ Pago {query.idPago} no encontrado")
                 return QueryResultado(resultado=None)
             
-            # Response según especificación
+            # Response según especificación (camelCase + valores reales persistidos)
             pago_response = {
-                "idTransaction": query.idTransaction,  # Viene del query
+                "idTransaction": pago.idTransaction,
                 "idPago": pago.idPago,
                 "idSocio": pago.idSocio,
-                "pago": float(pago.monto),  # Campo renombrado de 'monto' a 'pago'
-                "estado_pago": pago.estado,  # Campo renombrado
+                "pago": float(pago.monto),  # Se expone como 'pago' según contrato
+                "estadoPago": pago.estado,  # camelCase
                 "fechaPago": pago.fechaPago.isoformat()
             }
             
-            print(f"✅ Pago {query.idPago} encontrado: {pago_response['estado_pago']}")
+            print(f"✅ Pago {query.idPago} encontrado: {pago_response['estadoPago']}")
             return QueryResultado(resultado=pago_response)
 
 # Registrar handler usando singledispatch

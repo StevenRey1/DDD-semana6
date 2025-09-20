@@ -4,7 +4,7 @@ class Settings(BaseSettings):
     DB_URL: str = "postgresql+psycopg2://postgres:postgres@postgres-pagos:5432/pagos_db"
     PULSAR_URL: str = "pulsar://pulsar:6650"
     SERVICE_NAME: str = "pagos-api"
-    TOPIC_PAGOS: str = "eventos-pagos"
+    TOPIC_PAGOS: str = "eventos-pago"  # Unificado a singular según contrato
     TOPIC_REFERIDO_CONFIRMADO: str = "eventos-referido-confirmado"
     OUTBOX_BATCH_SIZE: int = 100
     class Config:

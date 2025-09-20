@@ -36,6 +36,6 @@ class PagoProcesado:
             "idEvento": self.idEvento,
             "idSocio": self.idSocio,
             "monto": self.monto,
-            "estado_pago": self.estado_pago,
+            "estadoPago": self.estado_pago,
             "fechaPago": self.fechaPago.isoformat() if self.fechaPago else None
         }

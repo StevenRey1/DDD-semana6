@@ -132,13 +132,14 @@ def test_consulta_estado_pago():
             data = response.json()
             
             # Verificar estructura exacta según especificación
-            required_fields = ["idTransaction", "idPago", "idSocio", "pago", "estado_pago", "fechaPago"]
+            # Contrato actualizado: usar camelCase estadoPago
+            required_fields = ["idTransaction", "idPago", "idSocio", "pago", "estadoPago", "fechaPago"]
             for field in required_fields:
                 assert field in data, f"Campo {field} faltante en response"
             
             # Verificar tipos y valores
             assert isinstance(data["pago"], (int, float)), "Campo 'pago' debe ser numérico"
-            assert data["estado_pago"] in ["solicitado", "completado", "rechazado"], f"Estado inválido: {data['estado_pago']}"
+            assert data["estadoPago"] in ["solicitado", "completado", "rechazado"], f"Estado inválido: {data['estadoPago'] }"
             
             print(f"✅ Consulta exitosa: {data}")
         

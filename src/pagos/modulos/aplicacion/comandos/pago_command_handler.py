@@ -3,9 +3,13 @@ from .base import PagoBaseHandler
 from .pago_command import PagoCommand
 from ...infraestructura.repositorio_postgresql import RepositorioPagosPG
 from config.pulsar_config import Settings
+from pulsar import Client
+from pulsar.schema import AvroSchema
+from schema.eventos_pagos import PagoProcesado as PagoProcesadoSchema
 import json
 from datetime import datetime
 from uuid import uuid4
+import time
 
 class PagoCommandHandler(PagoBaseHandler):
     """
@@ -83,19 +87,38 @@ class PagoCommandHandler(PagoBaseHandler):
             return pago_existente
     
     def _publicar_evento_procesado(self, repo, pago, idTransaction, estado):
-        """Publica evento PagoProcesado según especificación"""
-        evento_pago_procesado = {
-            "idTransaction": idTransaction,
-            "idPago": pago.idPago,
-            "idEvento": pago.idEvento,
-            "idSocio": pago.idSocio,
-            "monto": float(pago.monto),
-            "estado_pago": estado,
-            "fechaPago": pago.fechaPago.isoformat()
-        }
-        
-        # Outbox pattern para eventos-pago
-        repo.outbox_add("eventos-pago", pago.idPago, json.dumps(evento_pago_procesado))
+        """Publica evento PagoProcesado directamente a Pulsar (sin outbox) con retries simples."""
+        settings = Settings()
+        client = Client(settings.PULSAR_URL)
+        producer = client.create_producer(settings.TOPIC_PAGOS, schema=AvroSchema(PagoProcesadoSchema))
+        try:
+            record = PagoProcesadoSchema(
+                idTransaction=idTransaction or "",
+                idPago=pago.idPago,
+                idEvento=pago.idEvento,
+                idSocio=pago.idSocio,
+                monto=float(pago.monto),
+                estadoPago=estado,
+                fechaPago=pago.fechaPago.isoformat()
+            )
+            intentos = 0
+            max_intentos = 3
+            backoff = 0.5
+            while True:
+                try:
+                    producer.send(record)
+                    print(f"📤 Evento PagoProcesado publicado idPago={pago.idPago} estado={estado}")
+                    break
+                except Exception as e:
+                    intentos += 1
+                    if intentos >= max_intentos:
+                        print(f"❌ Fallo publicando evento PagoProcesado tras {intentos} intentos: {e}")
+                        break
+                    time.sleep(backoff)
+                    backoff *= 2
+        finally:
+            producer.close()
+            client.close()
 
 # Registrar handler usando singledispatch
 @ejecutar_commando.register(PagoCommand)

@@ -40,7 +40,7 @@
   "idPago": "uuid",
   "idSocio": "uuid",
   "pago": 123.45,
-  "estado_pago": "solicitado | completado | rechazado",
+  "estadoPago": "solicitado | completado | rechazado",
   "fechaPago": "2025-09-09T20:00:00Z"
 }
 ```
@@ -57,7 +57,7 @@
   "idEvento": "uuid", 
   "idSocio": "uuid",
   "monto": 123.45,
-  "estado_pago": "solicitado | completado | rechazado",
+  "estadoPago": "solicitado | completado | rechazado",
   "fechaPago": "2025-09-09T20:00:00Z"
 }
 ```
@@ -77,7 +77,7 @@
 - **Handlers:** CQRS con auto-registro
 
 ### Infraestructura
-- **Repositorio:** PostgreSQL con outbox pattern
+- **Repositorio:** PostgreSQL simple (sin outbox en versión académica)
 - **Messaging:** Pulsar (solo comando-pago y eventos-pago)
 - **API:** FastAPI con endpoints REST
 
@@ -110,7 +110,7 @@ src/pagos/
     ├── test_dominio_pagos.py        # Tests dominio
     ├── test_evento_pago_procesado.py # Tests eventos
     ├── test_integracion_pago_command.py # Tests integración
-    └── test_outbox_publicacion.py   # Tests outbox
+  └── (eliminado test_outbox_publicacion.py al retirar outbox)
 ```
 
 ## Tópicos Pulsar
