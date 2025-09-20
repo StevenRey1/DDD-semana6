@@ -43,7 +43,7 @@ class Mutation:
         # Crear payload que coincida con el esquema EventoCommand que espera eventoMS
         from datetime import datetime
         comando = dict(
-            comando="Iniciar",  # Comando enum: Iniciar/Cancelar
+            # Comando enum: Iniciar/Cancelar
             data=dict(
                 idTransaction=str(uuid.uuid4()),  # Nuevo ID de transacción
                 tipoEvento=tipoEvento,
@@ -56,5 +56,5 @@ class Mutation:
         )
 
         despachador = Despachador()
-        info.context["background_tasks"].add_task(despachador.publicar_mensaje, comando, "eventos-comando", "public/default/eventos-comando")
+        info.context["background_tasks"].add_task(despachador.publicar_mensaje, comando, "comando-saga", "public/default/comando-saga")
         return EventoRespuesta(mensaje="Procesando Mensaje", codigo=203)

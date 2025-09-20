@@ -1,0 +1,10 @@
+
+class RegistrarUsuario():
+    ...
+
+class DesactivarUsuario():
+    ...
+
+class ValidarUsuario():
+    ...
+
