@@ -1,5 +1,6 @@
 import pulsar
 from pulsar.schema import *
+import json
 import datetime
 
 # Importamos TODOS los eventos y payloads que este despachador puede manejar
@@ -32,6 +33,7 @@ class Despachador:
         # Determinamos el tipo de evento de dominio para saber qué payload crear
         if isinstance(evento, EventoRegistrado):
             payload = EventoRegistradoPayload(
+                idTransaction=evento.id_transaction,
                 idEvento=str(evento.evento_id),
                 tipoEvento=str(evento.tipo_evento),
                 idReferido=str(evento.id_referido),

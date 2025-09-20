@@ -118,8 +118,7 @@ docker-compose -f docker-compose.integration.yml down --volumes --remove-orphans
 - **Ambiente:** Producción en modo normal (campañas activas)
 - **Artefacto:** Servicio de Pagos (pod/contenedor) y Event Bus
 - **Respuesta esperada:**
-   - El API Gateway enruta peticiones a instancias saludables.
-   - Los eventos pendientes se envían a la DLQ (cola de reintentos).
+   - Los eventos pendientes se envían al tópico de eventos-referido-confirmado.
    - Se realizan reintentos automáticos hasta su reproceso exitoso.
 - **Medida de la respuesta:**
    - SLA ≥ 99.95% (tiempo máximo de caída mensual ≤ 22 min)
@@ -181,3 +180,4 @@ docker system prune -f
 | 4  | Microservicio Eventos       | Fabiani Lozano                 |
 | 5  | Docker Compose              | Pair programming               |
 | 6  | Readme                      | Nicolas Valderrama - Jesús Rey |
+

@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  # ========================================
+  # PULSAR - Message Broker
+  # ========================================
+
+  pulsar:
+    image: apachepulsar/pulsar:3.1.0
+    container_name: pulsar-test
+    command: >
+      sh -c "bin/apply-config-from-env.py conf/standalone.conf &&
+             exec bin/pulsar standalone"
+    ports:
+      - "6650:6650"  # Pulsar port
+      - "8080:8080"  # Admin API
+    environment:
+      PULSAR_MEM: "-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m"
+    volumes:
+      - pulsar_test_data:/pulsar/data
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/admin/v2/clusters"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ========================================
+  # BFF_WEB - Backend API
+  # ========================================
+
+  bff_web:
+    build:
+      context: .
+      dockerfile: ./src/bff_web/Dockerfile
+    container_name: bff-web-test
+    ports:
+      - "8000:8000"
+    environment:
+      BROKER_HOST: pulsar
+      PULSAR_HOST: pulsar
+      PULSAR_PORT: 6650
+      PULSAR_TENANT: public
+      PULSAR_NAMESPACE: default
+    depends_on:
+      pulsar:
+        condition: service_healthy
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ========================================
+  # UI - Frontend (Static Files)
+  # ========================================
+
+  ui:
+    image: nginx:alpine
+    container_name: ui-test
+    ports:
+      - "8081:80"
+    volumes:
+      - ./src/ui:/usr/share/nginx/html
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - bff_web
+    networks:
+      - test-network
+
+volumes:
+  pulsar_test_data:
+    driver: local
+
+networks:
+  test-network:
+    driver: bridge

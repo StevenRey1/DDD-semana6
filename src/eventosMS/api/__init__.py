@@ -23,6 +23,7 @@ def comenzar_consumidor(app):
 
     import threading
     import modulos.eventos.infraestructura.consumidores as eventos
+    import modulos.sagas.infraestructura.consumidores as sagas
 
 
     # Suscripción a eventos
@@ -30,7 +31,10 @@ def comenzar_consumidor(app):
 
 
     # Suscripción a comandos
-    threading.Thread(target=eventos.suscribirse_a_comandos).start()
+    threading.Thread(target=eventos.suscribirse_a_comandos_evento, args=(app,)).start()
+    
+    # Suscripción a comandos de saga
+    threading.Thread(target=sagas.subscribirse_a_eventos_bff, args=(app,)).start()
 
 def create_app(configuracion={}):
     # Init la aplicacion de Flask

@@ -15,6 +15,9 @@ class EventoDTO:
     id_referido: UUID
     monto: float
     fecha_evento: str
+    comando: Optional[str] = None  # "Iniciar" | "Cancelar"
+    id_transaction: Optional[str] = None
+    id_evento: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -26,3 +29,16 @@ class ActualizarEventoPagoDTO:
     ganancia: float
     fecha_pago: str
     monto_pago: float
+
+
+@dataclass(frozen=True)
+class EventoTrackingDTO:
+    """DTO para eventos de tracking"""
+    id_transaction: Optional[str]
+    id_evento: str
+    tipo_evento: str
+    id_referido: str
+    id_socio: str
+    monto: float
+    estado_evento: str  # "pendiente" | "rechazado" | "pago_completado"
+    fecha_evento: str

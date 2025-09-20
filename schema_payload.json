@@ -1,0 +1,5 @@
+{
+  "schema": "{\"type\":\"record\",\"name\":\"ComandoTracking\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"},{\"name\":\"tipo_comando\",\"type\":\"string\"},{\"name\":\"id_socio\",\"type\":\"string\"},{\"name\":\"monto\",\"type\":\"float\"},{\"name\":\"fecha_creacion\",\"type\":\"long\"}]}",
+  "type": "AVRO",
+  "properties": {}
+}
