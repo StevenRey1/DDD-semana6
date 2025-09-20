@@ -8,7 +8,15 @@ import pulsar as _pulsar
 from pulsar.schema import AvroSchema
 from seedworks.aplicacion.comandos import ejecutar_commando
 from ..aplicacion.comandos.pago_command import PagoCommand, PagoData
-from config.pulsar_config import PulsarConfig
+try:
+    from config.pulsar_config import PulsarConfig, settings  # type: ignore
+except ImportError:
+    # Fallback si la imagen no tiene aún la clase PulsarConfig (compatibilidad)
+    from config.pulsar_config import settings  # type: ignore
+    class PulsarConfig:  # minimal shim
+        def __init__(self):
+            self.pulsar_url = getattr(settings, 'PULSAR_URL', 'pulsar://pulsar:6650')
+            self.topic_pagos = getattr(settings, 'TOPIC_PAGOS', 'eventos-pago')
 from schema.comandos_pagos import PagoCommandMessage
 import logging
 from datetime import datetime
