@@ -7,6 +7,7 @@ from enum import Enum
 class TipoComandoPago(str, Enum):
     INICIAR = "Iniciar"
     CANCELAR = "Cancelar"
+    COMPLETAR = "Completar"
 
 class PagoData(BaseModel):
     """Datos del pago según especificación"""
@@ -18,7 +19,7 @@ class PagoData(BaseModel):
 class PagoCommand(BaseModel, Comando):
     """
     Comando unificado para pagos según especificación.
-    Maneja tanto Iniciar como Cancelar pagos.
+    Maneja Iniciar, Cancelar y Completar pagos.
     """
     comando: TipoComandoPago  # Enum restringido
     idTransaction: Optional[str] = None

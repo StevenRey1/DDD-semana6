@@ -1,6 +1,6 @@
 from seedworks.aplicacion.comandos import ejecutar_commando
 from .base import PagoBaseHandler
-from .pago_command import PagoCommand
+from .pago_command import PagoCommand, TipoComandoPago
 from ...infraestructura.repositorio_postgresql import RepositorioPagosPG
 from config.pulsar_config import Settings
 from pulsar import Client
@@ -20,10 +20,12 @@ class PagoCommandHandler(PagoBaseHandler):
     def handle(self, comando: PagoCommand):
         print(f"🔄 Ejecutando PagoCommandHandler - Comando: {comando.comando}")
         
-        if comando.comando == "Iniciar":
+        if comando.comando == TipoComandoPago.INICIAR:
             return self._iniciar_pago(comando)
-        elif comando.comando == "Cancelar":
+        elif comando.comando == TipoComandoPago.CANCELAR:
             return self._cancelar_pago(comando)
+        elif comando.comando == TipoComandoPago.COMPLETAR:
+            return self._completar_pago(comando)
         else:
             raise ValueError(f"Comando no soportado: {comando.comando}")
     
@@ -84,6 +86,34 @@ class PagoCommandHandler(PagoBaseHandler):
             self._publicar_evento_procesado(repo, pago_existente, comando.idTransaction, "rechazado")
             print(f"✅ Pago {pago_existente.idPago} cancelado exitosamente")
             
+            return pago_existente
+
+    def _completar_pago(self, comando: PagoCommand):
+        """Lógica para completar un pago (transición a estado 'completado')."""
+        settings = Settings()
+        repo = RepositorioPagosPG(settings.DB_URL)
+
+        with repo.SessionLocal() as session:
+            pago_existente = session.query(repo.PagoORM).filter_by(
+                idEvento=comando.data.idEvento
+            ).first()
+
+            if not pago_existente:
+                raise ValueError(f"Pago no encontrado para evento {comando.data.idEvento}")
+
+            if pago_existente.estado == "completado":
+                print(f"ℹ️ Pago {pago_existente.idPago} ya estaba completado")
+                return pago_existente
+
+            if pago_existente.estado == "rechazado":
+                raise ValueError(f"No se puede completar un pago rechazado (idPago={pago_existente.idPago})")
+
+            pago_existente.estado = "completado"
+            pago_existente.fechaPago = datetime.utcnow()
+            session.commit()
+
+            self._publicar_evento_procesado(repo, pago_existente, comando.idTransaction, "completado")
+            print(f"✅ Pago {pago_existente.idPago} completado exitosamente")
             return pago_existente
     
     def _publicar_evento_procesado(self, repo, pago, idTransaction, estado):
