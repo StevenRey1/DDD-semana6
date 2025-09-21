@@ -6,7 +6,7 @@ from pulsar.schema import *
 
 from eventosMS.modulos.sagas.infraestructura.schema.v1.eventos import EventoEventoRegistrado, IniciarSagaPago, ReferidoProcesado, PagoProcesado
 from eventosMS.modulos.sagas.aplicacion.coordinadores.saga_reservas import oir_mensaje
-from modulos.eventos.infraestructura.schema.v1.eventos import PagoCompletado, EventoCommand
+from eventosMS.modulos.eventos.infraestructura.schema.v1.eventos import PagoCompletado, EventoCommand
 from seedwork.infraestructura import utils
 from seedwork.aplicacion.comandos import ejecutar_commando
 from eventosMS.modulos.sagas.dominio.eventos.eventos import CrearEvento, EventoRegistrado
@@ -20,7 +20,6 @@ def subscribirse_a_eventos_bff(app):
     """
     cliente = None
     try:
-        # Usar configuración robusta de conexión
         pulsar_url = f'pulsar://{utils.broker_host()}:6650'
         print(f"🔗 Conectando consumidor de eventos-bff a: {pulsar_url}")
 
@@ -30,7 +29,6 @@ def subscribirse_a_eventos_bff(app):
             operation_timeout_seconds=30
         )
 
-        # Suscribirse sin schema para manejar JSON directamente
         consumidor = cliente.subscribe(
             'comando-saga',
             consumer_type=_pulsar.ConsumerType.Shared,
@@ -42,36 +40,33 @@ def subscribirse_a_eventos_bff(app):
         print("✅ Conectado al tópico 'comando-saga'")
         print("📡 Esperando eventos de la BFF...")
 
-        while True:
-            try:
-                mensaje = consumidor.receive()
-                if mensaje:
-                    print(f'📨 Evento BFF recibido en servicio eventos')
+        with app.app_context():
+            print("[saga-consumer] Contexto Flask activado (eventos-bff)")
+            while True:
+                try:
+                    mensaje = consumidor.receive()
+                    if not mensaje:
+                        continue
+                    print('📨 Evento BFF recibido en servicio eventos')
                     datos = mensaje.value()
                     logger.info(f"Evento BFF recibido: {datos}")
                     print(f"📋 Datos del evento: {datos}")
                     datos_dto = CrearEvento(
-                        tipo=datos.data.tipoEvento ,
+                        tipo=datos.data.tipoEvento,
                         id_socio=datos.data.idSocio,
                         id_referido=datos.data.idReferido,
                         monto=datos.data.monto,
                         fecha_evento=datos.data.fechaEvento,
                         comando="Iniciar",
                         id_transaction=datos.data.idTransaction,
-                        correlation_id=datos.data.idTransaction  # unificamos correlation con id_transaction
                     )
                     print(f"🔗 correlation/id_transaction utilizado como traza: {datos.data.idTransaction}")
-                    
                     oir_mensaje(datos_dto)
-                    
-                    # acknowledge the message to remove it from the subscription
                     consumidor.acknowledge(mensaje)
-
-            except Exception as e:
-                print(f"⚠️ Error al procesar evento BFF: {e}")
-                logger.error(f"Error al procesar evento BFF: {e}")
-                traceback.print_exc()
-
+                except Exception as e:
+                    print(f"⚠️ Error al procesar evento BFF: {e}")
+                    logger.error(f"Error al procesar evento BFF: {e}")
+                    traceback.print_exc()
     except Exception as e:
         print(f"⚠️ Error al conectar consumidor de eventos-bff: {e}")
         logger.error(f"Error al conectar consumidor de eventos-bff: {e}")
@@ -109,36 +104,38 @@ def subscribirse_a_eventos_tracking(app):
         print("✅ Conectado al tópico 'eventos-tracking'")
         print("📡 Esperando eventos de eventos...")
 
-        while True:
-            try:
-                mensaje = consumidor.receive()
+        with app.app_context():
+            print("[saga-consumer] Contexto Flask activado (eventos-tracking)")
+            while True:
+                try:
+                    mensaje = consumidor.receive()
 
-                if mensaje:
-                    print(f'📨 Evento eventos-tracking recibido en servicio saga')
-                    datos = mensaje.value()
-                    logger.info(f"Evento recibido: {datos}")
-                    print(f"📋 Datos del evento: {datos}")
-                    print(f"📋 Datos del data: {datos.data.__dict__}")
-                    datos_dto = EventoRegistrado(
-                        idTransaction=datos.data.idTransaction,
-                        idEvento=datos.data.idEvento,
-                        tipoEvento=datos.data.tipoEvento,
-                        idReferido=datos.data.idReferido,
-                        idSocio=datos.data.idSocio,
-                        monto=datos.data.monto,
-                        estado=datos.data.estado,
-                        fechaEvento=datos.data.fechaEvento,
-                        comando= "Iniciar" if datos.data.estado == "pendiente" else "Cancelar"
-                    )         
-                    oir_mensaje(datos_dto)
-                    
-                    # acknowledge the message to remove it from the subscription
-                    consumidor.acknowledge(mensaje)
+                    if mensaje:
+                        print(f'📨 Evento eventos-tracking recibido en servicio saga')
+                        datos = mensaje.value()
+                        logger.info(f"Evento recibido: {datos}")
+                        print(f"📋 Datos del evento: {datos}")
+                        print(f"📋 Datos del data: {datos.data.__dict__}")
+                        datos_dto = EventoRegistrado(
+                            idTransaction=datos.data.idTransaction,
+                            idEvento=datos.data.idEvento,
+                            tipoEvento=datos.data.tipoEvento,
+                            idReferido=datos.data.idReferido,
+                            idSocio=datos.data.idSocio,
+                            monto=datos.data.monto,
+                            estado=datos.data.estado,
+                            fechaEvento=datos.data.fechaEvento,
+                            comando= "Iniciar" if datos.data.estado == "pendiente" else "Cancelar"
+                        )         
+                        oir_mensaje(datos_dto)
+                        
+                        # acknowledge the message to remove it from the subscription
+                        consumidor.acknowledge(mensaje)
 
-            except Exception as e:
-                print(f"⚠️ Error al procesar evento tracking: {e}")
-                logger.error(f"Error al procesar evento BFF: {e}")
-                traceback.print_exc()
+                except Exception as e:
+                    print(f"⚠️ Error al procesar evento tracking: {e}")
+                    logger.error(f"Error al procesar evento BFF: {e}")
+                    traceback.print_exc()
 
     except Exception as e:
         print(f"⚠️ Error al conectar consumidor de eventos-bff: {e}")
@@ -178,32 +175,34 @@ def subscribirse_a_evento_referido(app):
         print("✅ Conectado al tópico 'eventos-referido'")
         print("📡 Esperando eventos de referidos...")
 
-        while True:
-            try:
-                mensaje = consumidor.receive()
+        with app.app_context():
+            print("[saga-consumer] Contexto Flask activado (eventos-referido)")
+            while True:
+                try:
+                    mensaje = consumidor.receive()
 
-                if mensaje:
-                    print(f'📨 Evento eventos-referido recibido en servicio saga')
-                    datos = mensaje.value()
-                    logger.info(f"Evento recibido: {datos}")
-                    print(f"📋 Datos del evento: {datos}")
-                    print(f"📋 Datos del data: {datos.data.__dict__}")
-                    pago_dto = ReferidoProcesadoDominio(
-                        idTransaction=datos.idTransaction,
-                        idEvento=datos.data.idEvento,
-                        idSocio=datos.data.idSocio,
-                        monto=datos.data.monto,
-                        estado=datos.data.estadoEvento,
-                        fechaEvento=datos.data.fechaEvento
-                    )
-                    oir_mensaje(pago_dto)
-                    # acknowledge the message to remove it from the subscription
-                    consumidor.acknowledge(mensaje)
+                    if mensaje:
+                        print(f'📨 Evento eventos-referido recibido en servicio saga')
+                        datos = mensaje.value()
+                        logger.info(f"Evento recibido: {datos}")
+                        print(f"📋 Datos del evento: {datos}")
+                        print(f"📋 Datos del data: {datos.data.__dict__}")
+                        pago_dto = ReferidoProcesadoDominio(
+                            idTransaction=datos.idTransaction,
+                            idEvento=datos.data.idEvento,
+                            idSocio=datos.data.idSocio,
+                            monto=datos.data.monto,
+                            estado=datos.data.estadoEvento,
+                            fechaEvento=datos.data.fechaEvento
+                        )
+                        oir_mensaje(pago_dto)
+                        # acknowledge the message to remove it from the subscription
+                        consumidor.acknowledge(mensaje)
 
-            except Exception as e:
-                print(f"⚠️ Error al procesar eventos-referido: {e}")
-                logger.error(f"Error al procesar evento-referido: {e}")
-                traceback.print_exc()
+                except Exception as e:
+                    print(f"⚠️ Error al procesar eventos-referido: {e}")
+                    logger.error(f"Error al procesar evento-referido: {e}")
+                    traceback.print_exc()
 
     except Exception as e:
         print(f"⚠️ Error al conectar consumidor de eventos-referido: {e}")
@@ -242,33 +241,35 @@ def subscribirse_a_eventos_pago(app):
         print("✅ Conectado al tópico 'eventos-pago'")
         print("📡 Esperando eventos de pagos...")
 
-        while True:
-            try:
-                mensaje = consumidor.receive()
+        with app.app_context():
+            print("[saga-consumer] Contexto Flask activado (eventos-pago)")
+            while True:
+                try:
+                    mensaje = consumidor.receive()
 
-                if mensaje:
-                    print(f'📨 Evento eventos-pago recibido en servicio saga')
-                    datos = mensaje.value()
-                    logger.info(f"Evento recibido: {datos}")
-                    print(f"📋 Datos del evento: {datos}")
-                    print(f"📋 Datos del data: {datos.__dict__}")
-                    pago_dto = PagoProcesadoDominio(
-                        idTransaction=datos.idTransaction,
-                        idPago=datos.idPago,
-                        idEvento=datos.idEvento,
-                        idSocio=datos.idSocio,
-                        monto=datos.monto,
-                        estado=datos.estado,
-                        fechaEvento=datos.fechaEvento
-                    )
-                    oir_mensaje(pago_dto)
-                    # acknowledge the message to remove it from the subscription
-                    #consumidor.acknowledge(mensaje)
+                    if mensaje:
+                        print(f'📨 Evento eventos-pago recibido en servicio saga')
+                        datos = mensaje.value()
+                        logger.info(f"Evento recibido: {datos}")
+                        print(f"📋 Datos del evento: {datos}")
+                        print(f"📋 Datos del data: {datos.__dict__}")
+                        pago_dto = PagoProcesadoDominio(
+                            idTransaction=datos.idTransaction,
+                            idPago=datos.idPago,
+                            idEvento=datos.idEvento,
+                            idSocio=datos.idSocio,
+                            monto=datos.monto,
+                            estado=datos.estado,
+                            fechaEvento=datos.fechaEvento
+                        )
+                        oir_mensaje(pago_dto)
+                        # acknowledge the message to remove it from the subscription
+                        #consumidor.acknowledge(mensaje)
 
-            except Exception as e:
-                print(f"⚠️ Error al procesar eventos-pago: {e}")
-                logger.error(f"Error al procesar eventos-pago: {e}")
-                traceback.print_exc()
+                except Exception as e:
+                    print(f"⚠️ Error al procesar eventos-pago: {e}")
+                    logger.error(f"Error al procesar eventos-pago: {e}")
+                    traceback.print_exc()
 
     except Exception as e:
         print(f"⚠️ Error al conectar consumidor de eventos-pago: {e}")

@@ -24,7 +24,16 @@ class CrearEvento(EventoDominio):
     tipo: str = None
     comando: Optional[str] = None  # "Iniciar" | "Cancelar"
     id_transaction: Optional[str] = None  # ID de negocio (transacción de pago/evento)
-    correlation_id: Optional[str] = None  # ID técnico para trazar la saga (separado de id_transaction)
+    
+    # Compatibilidad: muchos componentes usan camelCase idTransaction (Avro, otros servicios)
+    # Internamente usamos snake_case id_transaction. Exponemos una property para no romper referencias.
+    @property
+    def idTransaction(self) -> Optional[str]:  # type: ignore[override]
+        return self.id_transaction
+
+    @idTransaction.setter
+    def idTransaction(self, value: Optional[str]):  # type: ignore[override]
+        self.id_transaction = value
     
 @dataclass
 class EventoError(EventoDominio):

@@ -1,5 +1,6 @@
 import os
 
+
 from flask import Flask, jsonify
 from flask_swagger import swagger
 
@@ -7,13 +8,14 @@ from flask_swagger import swagger
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 def registrar_handlers():
-    import modulos.eventos.aplicacion
+    # Unificar prefijo de paquete para evitar doble carga de módulos
+    import eventosMS.modulos.eventos.aplicacion
 
 
 def importar_modelos_alchemy():
-    import modulos.eventos.infraestructura.dto
-    # Importar modelos de saga para que SQLAlchemy los registre
-    import modulos.sagas.infraestructura.modelos  # noqa: F401
+    # Importar modelos usando siempre el mismo namespace raíz
+    import eventosMS.modulos.eventos.infraestructura.dto  # registra tabla 'eventos'
+    import eventosMS.modulos.sagas.infraestructura.modelos  # registra tabla 'saga_log'
 
 
 def comenzar_consumidor(app):
@@ -24,8 +26,8 @@ def comenzar_consumidor(app):
     """
 
     import threading
-    import modulos.eventos.infraestructura.consumidores as eventos
-    import modulos.sagas.infraestructura.consumidores as sagas
+    import eventosMS.modulos.eventos.infraestructura.consumidores as eventos
+    import eventosMS.modulos.sagas.infraestructura.consumidores as sagas
 
 
     # Suscripción a eventos

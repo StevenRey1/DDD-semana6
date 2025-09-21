@@ -8,21 +8,23 @@ from eventosMS.seedwork.dominio.eventos import EventoDominio
 from eventosMS.modulos.sagas.aplicacion.comandos.pagos import PagoCommand
 from eventosMS.modulos.sagas.dominio.eventos.referidos import ReferidoProcesado
 from eventosMS.modulos.sagas.dominio.eventos.pagos import PagoProcesado
+from eventosMS.modulos.sagas.infraestructura.repositorio_saga import RepositorioSaga
 
 
 
 class CoordinadorPagos(CoordinadorOrquestacion):
-    def __init__(self, correlacion_id: str | None = None):
-        """Coordinador de la Saga de Pagos.
+    """Coordinador de la Saga de Pagos (versión simplificada con saga_log pedagógico).
 
-        Unificación: usamos id_transaction como correlation id (traza) cuando existe.
-        - Si el listener no recibe correlacion_id explícito, se intentará usar id_transaction o id del evento.
-        - Ya no se genera un UUID separado para correlation; la trazabilidad se apoya en el id de negocio.
-        """
-        self._correlacion_id = correlacion_id
-        from eventosMS.modulos.sagas.infraestructura.repositorio_saga import RepositorioSaga
+    Cambios clave:
+    - Eliminamos el método genérico persistir_en_saga_log y usamos helpers del repositorio.
+    - Un único id de correlación = id_transaction (provisto externamente por los eventos).
+    - Cada fila del log: nombre dinámico (evento o comando) + tipo (inicio, evento_ok, evento_error, comando, fin) + paso.
+    - No gestionamos estados agregados (RUNNING/FAILED) a nivel de instancia, solo el flujo secuencial.
+    """
+
+    def __init__(self, correlacion_id: str | None = None):
+        self._correlacion_id = correlacion_id  # id_transaction
         self._repo = RepositorioSaga()
-        self._saga_instancia = None
 
     @property
     def nombre_saga(self):
@@ -38,55 +40,78 @@ class CoordinadorPagos(CoordinadorOrquestacion):
             Fin(index=5)
         ]
 
-    def _asegurar_instancia(self):
-        if not self._saga_instancia:
-            correlacion = self._correlacion_id or "sin-correlacion"
-            self._saga_instancia = self._repo.crear_o_recuperar_saga(self.nombre_saga, correlacion, total_pasos=len(self.pasos)-2)  # Excluye Inicio/Fin
-        return self._saga_instancia
+    def persistir_en_saga_log(self, mensaje):  # type: ignore[override]
+        """Compatibilidad con la interfaz abstracta original.
+
+        El flujo normal YA registra usando helpers. Aquí sólo aseguramos que si
+        algún código legado llama a este método, no falle y (en caso de Inicio/Fin)
+        se garantice la existencia del registro.
+        """
+        if not self._correlacion_id:
+            return
+        from eventosMS.seedwork.aplicacion.sagas import Inicio as _Inicio, Fin as _Fin
+        if isinstance(mensaje, _Inicio):
+            # Evitar duplicar si ya existe un inicio para esa transacción
+            if not self._repo.ultimo(self._correlacion_id):
+                self._repo.registrar_inicio(self._correlacion_id)
+        elif isinstance(mensaje, _Fin):
+            self._repo.registrar_fin(self._correlacion_id, paso=getattr(mensaje, 'index', -1), exito=True)
+
 
     def iniciar(self):
-        self.persistir_en_saga_log(self.pasos[0])
+        # Registrar inicio sólo una vez. Si no tenemos correlación, no registramos (pedagógico: asumimos siempre llega).
+        if self._correlacion_id:
+            self._repo.registrar_inicio(self._correlacion_id)
 
     def terminar(self):
-        self.persistir_en_saga_log(self.pasos[-1])
+        # Paso final = índice del objeto Fin (último en la lista)
+        if self._correlacion_id:
+            paso_fin = self.pasos[-1].index if isinstance(self.pasos[-1], Fin) else len(self.pasos)-1
+            self._repo.registrar_fin(self._correlacion_id, paso=paso_fin, exito=True)
 
-    def persistir_en_saga_log(self, mensaje):
-        instancia = self._asegurar_instancia()
-        if isinstance(mensaje, Inicio):
-            self._repo.registrar_step(instancia.id, 0, 'Inicio', 'inicio', 'OK', detalle='Saga iniciada')
-        elif isinstance(mensaje, Fin):
-            self._repo.registrar_step(instancia.id, mensaje.index, 'Fin', 'fin', 'OK', detalle='Saga finalizada')
-            self._repo.actualizar_estado_saga(instancia.id, 'COMPLETED', paso_actual=mensaje.index, finalizada=True)
-        elif isinstance(mensaje, Transaccion):
-            # Registrar intento de publicar comando
-            self._repo.registrar_step(instancia.id, mensaje.index, f'Transaccion-{mensaje.index}', 'publicar_comando', 'PENDING', detalle=f'Comando {mensaje.comando.__name__}')
-        else:
-            # Mensaje desconocido
-            self._repo.registrar_step(instancia.id, -1, 'Desconocido', 'debug', 'OK', detalle=str(type(mensaje)))
+    # ------------------ Sobre-escrituras para logging simplificado ------------------ #
+    def publicar_comando(self, evento: EventoDominio, tipo_comando: type):  # type: ignore[override]
+        """Publicar comando registrándolo primero en el saga_log.
+
+        Buscamos el índice de la transacción cuyo comando (o compensación) coincide con el tipo_comando.
+        Guardamos el nombre del comando (clase) y marcamos PENDING.
+        """
+        if not self._correlacion_id:
+            return
+        # Encontrar índice del paso asociado al comando o compensación
+        paso_index = None
+        for p in self.pasos:
+            if isinstance(p, Transaccion) and (p.comando == tipo_comando or p.compensacion == tipo_comando):
+                paso_index = p.index
+                break
+        if paso_index is None:
+            paso_index = -1
+        # Construir comando real
+        comando = self.construir_comando(evento, tipo_comando)
+        if comando is None:
+            return
+        self._repo.registrar_comando(self._correlacion_id, type(comando).__name__, paso_index, pendiente=True)
+        # Ejecutar comando (delegamos en infraestructura existente)
+        from eventosMS.seedwork.aplicacion.comandos import ejecutar_commando
+        ejecutar_commando(comando)
 
     def procesar_evento(self, evento: EventoDominio):
-        """Extiende la lógica base para registrar eventos de éxito o error."""
-        instancia = self._asegurar_instancia()
+        """Registrar el evento (ok o error) y delegar lógica de orquestación en la superclase."""
+        if not self._correlacion_id:
+            return
         try:
             paso, index = self.obtener_paso_dado_un_evento(evento)
-        except Exception as e:
-            # Evento no asociado: registramos debug y salimos
-            self._repo.registrar_step(instancia.id, -1, 'EventoNoMapeado', 'evento_desconocido', 'OK', detalle=str(type(evento)))
+        except Exception:
+            # Evento no reconocido: lo ignoramos en este modelo simplificado
             return
 
-        # Determinar si es error o éxito
-        es_error = isinstance(evento, paso.error)
-        accion = 'evento_error' if es_error else 'evento_ok'
-        estado = 'ERROR' if es_error else 'OK'
-        self._repo.registrar_step(instancia.id, index, f'Transaccion-{index}', accion, estado, detalle=type(evento).__name__)
+        if isinstance(paso, Transaccion):
+            if isinstance(evento, paso.error):
+                self._repo.registrar_evento_error(self._correlacion_id, type(evento).__name__, paso.index)
+            elif isinstance(evento, paso.evento):
+                self._repo.registrar_evento_ok(self._correlacion_id, type(evento).__name__, paso.index)
 
-        # Actualizar estado saga si es error
-        if es_error:
-            self._repo.actualizar_estado_saga(instancia.id, 'FAILED', paso_actual=index)
-        else:
-            self._repo.actualizar_estado_saga(instancia.id, 'RUNNING', paso_actual=index)
-
-        # Reutilizar flujo base (publicación de siguiente comando o terminación)
+        # Delegar a la lógica de orquestación (publicará comando o terminará)
         super().procesar_evento(evento)
 
     def construir_comando(self, evento: EventoDominio, tipo_comando: type):
@@ -144,11 +169,14 @@ def oir_mensaje(mensaje):
     print("type of message:", type(mensaje))
     if isinstance(mensaje, EventoDominio):
         # Correlation unificado: usar (correlation_id || id_transaction || id)
+        # Aceptar múltiples variantes para robustez: idTransaction (camel), id_transaction (snake), id genérico
         correlation = (
-            getattr(mensaje, 'correlation_id', None)
+            getattr(mensaje, 'idTransaction', None)
             or getattr(mensaje, 'id_transaction', None)
             or getattr(mensaje, 'id', None)
         )
+        if not correlation:
+            print("[saga] Advertencia: mensaje sin idTransaction/id_transaction, no se registrará saga_log")
         coordinador = CoordinadorPagos(correlacion_id=str(correlation) if correlation else None)
         coordinador.inicializar_pasos()
         coordinador.iniciar()
