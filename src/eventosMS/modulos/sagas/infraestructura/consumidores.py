@@ -262,7 +262,7 @@ def subscribirse_a_eventos_pago(app):
                     )
                     oir_mensaje(pago_dto, app)
                     # acknowledge the message to remove it from the subscription
-                    #consumidor.acknowledge(mensaje)
+                    consumidor.acknowledge(mensaje)
 
             except Exception as e:
                 print(f"⚠️ Error al procesar eventos-pago: {e}")

@@ -43,7 +43,7 @@ class ReferidoProcesado(EventoIntegracion):
     Incluye información de venta creada
     Tópico: comandos-transaccion
     """
-    comando = String()
+    # comando = String()
     idTransaction = String(required=False)
     data = ReferidoCommandPayload()
 
