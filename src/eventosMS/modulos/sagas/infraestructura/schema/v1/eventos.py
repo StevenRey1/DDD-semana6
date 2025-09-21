@@ -29,3 +29,25 @@ class EventoRegistradoPayload(Record):
 
 class EventoEventoRegistrado(EventoIntegracion):
     data = EventoRegistradoPayload()
+
+
+class ReferidoCommandPayload(Record):
+    """
+    Payload para referido
+    """
+    tipoEvento = String()
+    idEvento = String()
+    idReferido = String()
+    idSocio = String()
+    monto = Float()
+    fechaEvento = String()
+    estadoEvento = String()
+
+class ReferidoProcesado(EventoIntegracion):
+    """
+    Evento de comando para iniciar o cancelar transacciones
+    Incluye información de venta creada
+    Tópico: comandos-transaccion
+    """
+    idTransaction = String(required=False)
+    data = ReferidoCommandPayload()

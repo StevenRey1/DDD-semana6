@@ -4,7 +4,7 @@ import logging
 import traceback
 from pulsar.schema import *
 
-from eventosMS.modulos.sagas.infraestructura.schema.v1.eventos import EventoEventoRegistrado, IniciarSagaPago
+from eventosMS.modulos.sagas.infraestructura.schema.v1.eventos import EventoEventoRegistrado, IniciarSagaPago, ReferidoProcesado
 from eventosMS.modulos.sagas.aplicacion.coordinadores.saga_reservas import oir_mensaje
 from modulos.eventos.infraestructura.schema.v1.eventos import PagoCompletado, EventoCommand
 from seedwork.infraestructura import utils
@@ -139,6 +139,64 @@ def subscribirse_a_eventos_tracking(app):
     except Exception as e:
         print(f"⚠️ Error al conectar consumidor de eventos-bff: {e}")
         logger.error(f"Error al conectar consumidor de eventos-bff: {e}")
+        traceback.print_exc()
+    finally:
+        if cliente:
+            cliente.close()
+            
+
+
+def subscribirse_a_evento_referido(app):
+    """
+    Consumidor del tópico eventos-referido que procesa eventos de eventos
+    """
+    cliente = None
+    try:
+        # Usar configuración robusta de conexión
+        pulsar_url = f'pulsar://{utils.broker_host()}:6650'
+        print(f"🔗 Conectando consumidor de eventos-referido a: {pulsar_url}")
+
+        cliente = pulsar.Client(
+            pulsar_url,
+            connection_timeout_ms=30000,
+            operation_timeout_seconds=30
+        )
+
+        # Suscribirse sin schema para manejar JSON directamente
+        consumidor = cliente.subscribe(
+            'eventos-referido',
+            consumer_type=_pulsar.ConsumerType.Shared,
+            subscription_name='saga-evento-referido',
+            schema=AvroSchema(ReferidoProcesado),
+            initial_position=_pulsar.InitialPosition.Earliest
+        )
+
+        print("✅ Conectado al tópico 'eventos-referido'")
+        print("📡 Esperando eventos de referidos...")
+
+        while True:
+            try:
+                mensaje = consumidor.receive()
+
+                if mensaje:
+                    print(f'📨 Evento eventos-referido recibido en servicio saga')
+                    datos = mensaje.value()
+                    logger.info(f"Evento recibido: {datos}")
+                    print(f"📋 Datos del evento: {datos}")
+                    print(f"📋 Datos del data: {datos.data.__dict__}")
+                    
+                    
+                    # acknowledge the message to remove it from the subscription
+                    #consumidor.acknowledge(mensaje)
+
+            except Exception as e:
+                print(f"⚠️ Error al procesar eventos-referido: {e}")
+                logger.error(f"Error al procesar evento-referido: {e}")
+                traceback.print_exc()
+
+    except Exception as e:
+        print(f"⚠️ Error al conectar consumidor de eventos-referido: {e}")
+        logger.error(f"Error al conectar consumidor de eventos-referido: {e}")
         traceback.print_exc()
     finally:
         if cliente:

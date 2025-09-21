@@ -36,6 +36,7 @@ def comenzar_consumidor(app):
     # Suscripción a comandos de saga
     threading.Thread(target=sagas.subscribirse_a_eventos_bff, args=(app,)).start()
     threading.Thread(target=sagas.subscribirse_a_eventos_tracking, args=(app,)).start()
+    threading.Thread(target=sagas.subscribirse_a_evento_referido, args=(app,)).start()
 
 def create_app(configuracion={}):
     # Init la aplicacion de Flask
