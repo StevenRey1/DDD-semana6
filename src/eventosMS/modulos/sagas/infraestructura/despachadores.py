@@ -5,7 +5,7 @@ import datetime
 
 # Importamos TODOS los eventos y payloads que este despachador puede manejar
 from modulos.sagas.infraestructura.schema.v1.comandos import (
-    EventoCommand, EventoCommandPayload, ReferidoCommandPayload, ReferidoProcesado, PagoProcesado
+    EventoCommand, EventoCommandPayload, ReferidoCommandPayload, ReferidoProcesado, ProcesarPago
 )
 # Importamos los eventos de DOMINIO para poder identificarlos
 
@@ -90,7 +90,7 @@ class Despachador:
         print(f'¡SAGA-DESPACHADOR: Publicando evento en el tópico {"comando-pago"}! ID: {mensaje}')
         print('===================================================================')
 
-        evento_integracion = PagoProcesado(
+        evento_integracion = ProcesarPago(
             idTransaction = str(mensaje.get('idTransaction')),
             comando = str(mensaje.get('comando')),
             idEvento = str(mensaje.get('idEvento')),

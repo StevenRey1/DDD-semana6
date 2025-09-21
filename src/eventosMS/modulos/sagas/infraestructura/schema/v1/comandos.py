@@ -47,28 +47,11 @@ class ReferidoProcesado(EventoIntegracion):
     idTransaction = String(required=False)
     data = ReferidoCommandPayload()
 
-class PagoCommandData(Record):
-    """Datos del comando de pago"""
-    idEvento = String()
-    idSocio = String()
-    monto = Float()
-    fechaEvento = String()
+class ProcesarPago(EventoIntegracion):
 
-class PagoCommandMessage(Record):
-    """
-    Comando de pago que llega vía tópico comando-pago
-    Según especificación del contrato
-    """
-    comando = String()  
-    idTransaction = String()  # Opcional pero requerido en Avro
-    data = PagoCommandData()
-
-class PagoProcesado(EventoIntegracion):
-
+    comando = String()
     idTransaction = String()  # Opcional en el contrato, obligatorio en Avro
-    idPago = String()
     idEvento = String() 
     idSocio = String()
     monto = Float()
-    estadoPago = String()  # "solicitado | completado | rechazado"
-    fechaPago = String()
+    fechaEvento = String()

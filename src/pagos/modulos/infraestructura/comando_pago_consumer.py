@@ -1,8 +1,3 @@
-"""
-Consumer actualizado para escuchar comandos PagoCommand del tópico comando-pago.
-Sigue patrón CQRS delegando todo a ejecutar_commando.
-"""
-
 import pulsar
 import pulsar as _pulsar
 from pulsar.schema import AvroSchema
@@ -17,7 +12,7 @@ except ImportError:
         def __init__(self):
             self.pulsar_url = getattr(settings, 'PULSAR_URL', 'pulsar://pulsar:6650')
             self.topic_pagos = getattr(settings, 'TOPIC_PAGOS', 'eventos-pago')
-from schema.comandos_pagos import PagoCommandMessage
+from pagos.schema.eventos_pagos import ProcesarPago
 import logging
 from datetime import datetime
 
@@ -36,7 +31,7 @@ def suscribirse_a_comando_pago():
             "comando-pago",  # Tópico según especificación
             consumer_type=_pulsar.ConsumerType.Shared,
             subscription_name='pagos-comando-sub',
-            schema=AvroSchema(PagoCommandMessage),
+            schema=AvroSchema(ProcesarPago),
             initial_position=_pulsar.InitialPosition.Earliest
         )
 
@@ -53,10 +48,10 @@ def suscribirse_a_comando_pago():
                     try:
                         # ✅ Convertir mensaje Avro a comando interno
                         pago_data = PagoData(
-                            idEvento=datos.data.idEvento,
-                            idSocio=datos.data.idSocio,
-                            monto=datos.data.monto,
-                            fechaEvento=datetime.fromisoformat(datos.data.fechaEvento.replace('Z', '+00:00'))
+                            idEvento=datos.idEvento,
+                            idSocio=datos.idSocio,
+                            monto=datos.monto,
+                            fechaEvento=str(datos.fechaEvento)
                         )
                         
                         comando = PagoCommand(
@@ -71,7 +66,7 @@ def suscribirse_a_comando_pago():
                         print(f"✅ [COMANDO-PAGO CONSUMER] Comando ejecutado exitosamente")
                         
                     except Exception as e:
-                        print(f"❌ [COMANDO-PAGO CONSUMER] Error ejecutando comando: {e}")
+                        print(f"❌ [COMANDO-PAGO CONSUMER] Error ejecutando comando 2: {e}")
                         logging.error(f"Error ejecutando comando: {e}")
                     
                     consumidor.acknowledge(mensaje)

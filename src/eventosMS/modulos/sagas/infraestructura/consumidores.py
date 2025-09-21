@@ -190,6 +190,7 @@ def subscribirse_a_evento_referido(app):
                         idEvento=datos.data.idEvento,
                         idSocio=datos.data.idSocio,
                         monto=datos.data.monto,
+                        estado=datos.data.estadoEvento,
                         fechaEvento=datos.data.fechaEvento
                     )
                     oir_mensaje(pago_dto)

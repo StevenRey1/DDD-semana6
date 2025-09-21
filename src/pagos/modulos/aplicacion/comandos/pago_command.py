@@ -14,7 +14,7 @@ class PagoData(BaseModel):
     idEvento: str
     idSocio: str
     monto: float
-    fechaEvento: datetime
+    fechaEvento: str
 
 class PagoCommand(BaseModel, Comando):
     """

@@ -14,7 +14,7 @@ class PagoORM(Base):
     idSocio = Column(String, nullable=False)
     monto = Column(Numeric(18,2), nullable=False)
     estado = Column(String, nullable=False)
-    fechaPago = Column(DateTime(timezone=True), nullable=False)
+    fechaEvento = Column(DateTime(timezone=True), nullable=False)
     idTransaction = Column(String, nullable=True)  # Nuevo campo según especificación
 
 
@@ -34,7 +34,7 @@ class RepositorioPagosPG(RepoPagos):
                     idSocio=pago_orm.idSocio,
                     monto=float(pago_orm.monto),
                     estado=pago_orm.estado,
-                    fechaPago=pago_orm.fechaPago,
+                    fechaEvento=pago_orm.fechaEvento,
                     idTransaction=pago_orm.idTransaction
                 )
             return None
@@ -44,7 +44,7 @@ class RepositorioPagosPG(RepoPagos):
             pago_orm = session.get(PagoORM, pago.idPago)
             if pago_orm:
                 pago_orm.estado = pago.estado
-                pago_orm.fechaPago = pago.fechaPago
+                pago_orm.fechaEvento = pago.fechaEvento
                 pago_orm.idTransaction = pago.idTransaction
             else:
                 pago_orm = PagoORM(
@@ -53,7 +53,7 @@ class RepositorioPagosPG(RepoPagos):
                     idSocio=pago.idSocio,
                     monto=pago.monto,
                     estado=pago.estado,
-                    fechaPago=pago.fechaPago,
+                    fechaEvento=pago.fechaEvento,
                     idTransaction=pago.idTransaction
                 )
                 session.add(pago_orm)

@@ -1,16 +1,15 @@
 from seedworks.aplicacion.comandos import ejecutar_commando
 from .base import PagoBaseHandler
 from .pago_command import PagoCommand, TipoComandoPago
-from ...infraestructura.repositorio_postgresql import RepositorioPagosPG
+from ...infraestructura.repositorio_postgresql import RepositorioPagosPG, PagoORM
 from config.pulsar_config import Settings
 from pulsar import Client
 from pulsar.schema import AvroSchema
-from schema.eventos_pagos import PagoProcesado as PagoProcesadoSchema
+from schema.eventos_pagos import ProcesarPago as PagoProcesadoSchema
 import json
 from datetime import datetime
 from uuid import uuid4
 import time
-
 class PagoCommandHandler(PagoBaseHandler):
     """
     Handler unificado para PagoCommand.
@@ -19,6 +18,10 @@ class PagoCommandHandler(PagoBaseHandler):
     
     def handle(self, comando: PagoCommand):
         print(f"🔄 Ejecutando PagoCommandHandler - Comando: {comando.comando}")
+
+        if comando.data.monto <= 500:
+            return self._completar_pago(comando)
+
         
         if comando.comando == TipoComandoPago.INICIAR:
             return self._iniciar_pago(comando)
@@ -36,7 +39,7 @@ class PagoCommandHandler(PagoBaseHandler):
         
         with repo.SessionLocal() as session:
             # Verificar si ya existe
-            pago_existente = session.query(repo.PagoORM).filter_by(
+            pago_existente = session.query(PagoORM).filter_by(
                 idEvento=comando.data.idEvento
             ).first()
             
@@ -46,13 +49,13 @@ class PagoCommandHandler(PagoBaseHandler):
             
             # Crear nuevo pago
             idPago = str(uuid4())
-            pago_orm = repo.PagoORM(
+            pago_orm = PagoORM(
                 idPago=idPago,
                 idEvento=comando.data.idEvento,
                 idSocio=comando.data.idSocio,
                 monto=comando.data.monto,
                 estado="solicitado",
-                fechaPago=comando.data.fechaEvento,
+                fechaEvento=comando.data.fechaEvento,
                 idTransaction=comando.idTransaction
             )
             session.add(pago_orm)
@@ -71,7 +74,7 @@ class PagoCommandHandler(PagoBaseHandler):
         
         with repo.SessionLocal() as session:
             # Buscar pago existente
-            pago_existente = session.query(repo.PagoORM).filter_by(
+            pago_existente = session.query(PagoORM).filter_by(
                 idEvento=comando.data.idEvento
             ).first()
             
@@ -94,7 +97,7 @@ class PagoCommandHandler(PagoBaseHandler):
         repo = RepositorioPagosPG(settings.DB_URL)
 
         with repo.SessionLocal() as session:
-            pago_existente = session.query(repo.PagoORM).filter_by(
+            pago_existente = session.query(PagoORM).filter_by(
                 idEvento=comando.data.idEvento
             ).first()
 
@@ -109,7 +112,7 @@ class PagoCommandHandler(PagoBaseHandler):
                 raise ValueError(f"No se puede completar un pago rechazado (idPago={pago_existente.idPago})")
 
             pago_existente.estado = "completado"
-            pago_existente.fechaPago = datetime.utcnow()
+            pago_existente.fechaEvento = datetime.utcnow()
             session.commit()
 
             self._publicar_evento_procesado(repo, pago_existente, comando.idTransaction, "completado")
@@ -118,18 +121,19 @@ class PagoCommandHandler(PagoBaseHandler):
     
     def _publicar_evento_procesado(self, repo, pago, idTransaction, estado):
         """Publica evento PagoProcesado directamente a Pulsar (sin outbox) con retries simples."""
+
         settings = Settings()
         client = Client(settings.PULSAR_URL)
         producer = client.create_producer(settings.TOPIC_PAGOS, schema=AvroSchema(PagoProcesadoSchema))
         try:
             record = PagoProcesadoSchema(
-                idTransaction=idTransaction or "",
+                idTransaction=idTransaction,
                 idPago=pago.idPago,
                 idEvento=pago.idEvento,
                 idSocio=pago.idSocio,
                 monto=float(pago.monto),
-                estadoPago=estado,
-                fechaPago=pago.fechaPago.isoformat()
+                fechaEvento=pago.fechaEvento,
+                estado=estado
             )
             intentos = 0
             max_intentos = 3
