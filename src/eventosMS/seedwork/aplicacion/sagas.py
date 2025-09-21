@@ -83,7 +83,8 @@ class CoordinadorOrquestacion(CoordinadorSaga, ABC):
         raise Exception("Evento no hace parte de la transacción")
                 
     def es_ultima_transaccion(self, index):
-        return index == len(self.pasos) - 1
+        print(f"index: {index}, len(self.pasos): {len(self.pasos)}")
+        return index == len(self.pasos) - 2
 
     def procesar_evento(self, evento: EventoDominio):
         paso, index = self.obtener_paso_dado_un_evento(evento)

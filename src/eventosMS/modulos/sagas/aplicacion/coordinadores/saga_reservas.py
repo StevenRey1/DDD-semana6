@@ -7,6 +7,7 @@ from eventosMS.seedwork.aplicacion.comandos import Comando
 from eventosMS.seedwork.dominio.eventos import EventoDominio
 from eventosMS.modulos.sagas.aplicacion.comandos.pagos import PagoCommand
 from eventosMS.modulos.sagas.dominio.eventos.referidos import ReferidoProcesado
+from eventosMS.modulos.sagas.dominio.eventos.pagos import PagoProcesado
 
 
 
@@ -19,7 +20,8 @@ class CoordinadorPagos(CoordinadorOrquestacion):
             Transaccion(index=1, comando=EventoCommand, evento=CrearEvento, error=EventoError, compensacion=EventoCompensacion, exitosa=True),
             Transaccion(index=2, comando=ReferidoCommand, evento=EventoRegistrado, error=EventoError, compensacion=EventoCompensacion, exitosa=True),
             Transaccion(index=3, comando=PagoCommand, evento=ReferidoProcesado, error=EventoError, compensacion=EventoCompensacion, exitosa=True),
-            Fin(index=4)
+            Transaccion(index=4, comando=None, evento=PagoProcesado, error=EventoError, compensacion=EventoCompensacion, exitosa=True),
+            Fin(index=5)
         ]
 
     def iniciar(self):

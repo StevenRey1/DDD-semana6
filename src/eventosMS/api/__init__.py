@@ -38,6 +38,8 @@ def comenzar_consumidor(app):
     threading.Thread(target=sagas.subscribirse_a_eventos_tracking, args=(app,)).start()
     threading.Thread(target=sagas.subscribirse_a_evento_referido, args=(app,)).start()
 
+    threading.Thread(target=sagas.subscribirse_a_eventos_pago, args=(app,)).start()
+
 def create_app(configuracion={}):
     # Init la aplicacion de Flask
     app = Flask(__name__, instance_relative_config=True)

@@ -5,7 +5,7 @@ from ...infraestructura.repositorio_postgresql import RepositorioPagosPG, PagoOR
 from config.pulsar_config import Settings
 from pulsar import Client
 from pulsar.schema import AvroSchema
-from schema.eventos_pagos import ProcesarPago as PagoProcesadoSchema
+from schema.eventos_pagos import ProcesarPago, PagoProcesado
 import json
 from datetime import datetime
 from uuid import uuid4
@@ -124,9 +124,9 @@ class PagoCommandHandler(PagoBaseHandler):
 
         settings = Settings()
         client = Client(settings.PULSAR_URL)
-        producer = client.create_producer(settings.TOPIC_PAGOS, schema=AvroSchema(PagoProcesadoSchema))
+        producer = client.create_producer(settings.TOPIC_PAGOS, schema=AvroSchema(PagoProcesado))
         try:
-            record = PagoProcesadoSchema(
+            record = PagoProcesado(
                 idTransaction=idTransaction,
                 idPago=pago.idPago,
                 idEvento=pago.idEvento,

@@ -4,12 +4,13 @@ import logging
 import traceback
 from pulsar.schema import *
 
-from eventosMS.modulos.sagas.infraestructura.schema.v1.eventos import EventoEventoRegistrado, IniciarSagaPago, ReferidoProcesado
+from eventosMS.modulos.sagas.infraestructura.schema.v1.eventos import EventoEventoRegistrado, IniciarSagaPago, ReferidoProcesado, PagoProcesado
 from eventosMS.modulos.sagas.aplicacion.coordinadores.saga_reservas import oir_mensaje
 from modulos.eventos.infraestructura.schema.v1.eventos import PagoCompletado, EventoCommand
 from seedwork.infraestructura import utils
 from seedwork.aplicacion.comandos import ejecutar_commando
 from eventosMS.modulos.sagas.dominio.eventos.eventos import CrearEvento, EventoRegistrado
+from eventosMS.modulos.sagas.dominio.eventos.pagos import PagoProcesado as PagoProcesadoDominio
 from eventosMS.modulos.sagas.dominio.eventos.referidos import ReferidoProcesado as ReferidoProcesadoDominio
 
 
@@ -195,7 +196,7 @@ def subscribirse_a_evento_referido(app):
                     )
                     oir_mensaje(pago_dto)
                     # acknowledge the message to remove it from the subscription
-                    #consumidor.acknowledge(mensaje)
+                    consumidor.acknowledge(mensaje)
 
             except Exception as e:
                 print(f"⚠️ Error al procesar eventos-referido: {e}")
@@ -205,6 +206,71 @@ def subscribirse_a_evento_referido(app):
     except Exception as e:
         print(f"⚠️ Error al conectar consumidor de eventos-referido: {e}")
         logger.error(f"Error al conectar consumidor de eventos-referido: {e}")
+        traceback.print_exc()
+    finally:
+        if cliente:
+            cliente.close()
+            
+
+def subscribirse_a_eventos_pago(app):
+    """
+    Consumidor del tópico eventos-pago que procesa eventos de pagos
+    """
+    cliente = None
+    try:
+        # Usar configuración robusta de conexión
+        pulsar_url = f'pulsar://{utils.broker_host()}:6650'
+        print(f"🔗 Conectando consumidor de eventos-pago a: {pulsar_url}")
+
+        cliente = pulsar.Client(
+            pulsar_url,
+            connection_timeout_ms=30000,
+            operation_timeout_seconds=30
+        )
+
+        # Suscribirse sin schema para manejar JSON directamente
+        consumidor = cliente.subscribe(
+            'eventos-pago',
+            consumer_type=_pulsar.ConsumerType.Shared,
+            subscription_name='saga-evento-pago',
+            schema=AvroSchema(PagoProcesado),
+            initial_position=_pulsar.InitialPosition.Earliest
+        )
+
+        print("✅ Conectado al tópico 'eventos-pago'")
+        print("📡 Esperando eventos de pagos...")
+
+        while True:
+            try:
+                mensaje = consumidor.receive()
+
+                if mensaje:
+                    print(f'📨 Evento eventos-pago recibido en servicio saga')
+                    datos = mensaje.value()
+                    logger.info(f"Evento recibido: {datos}")
+                    print(f"📋 Datos del evento: {datos}")
+                    print(f"📋 Datos del data: {datos.__dict__}")
+                    pago_dto = PagoProcesadoDominio(
+                        idTransaction=datos.idTransaction,
+                        idPago=datos.idPago,
+                        idEvento=datos.idEvento,
+                        idSocio=datos.idSocio,
+                        monto=datos.monto,
+                        estado=datos.estado,
+                        fechaEvento=datos.fechaEvento
+                    )
+                    oir_mensaje(pago_dto)
+                    # acknowledge the message to remove it from the subscription
+                    #consumidor.acknowledge(mensaje)
+
+            except Exception as e:
+                print(f"⚠️ Error al procesar eventos-pago: {e}")
+                logger.error(f"Error al procesar eventos-pago: {e}")
+                traceback.print_exc()
+
+    except Exception as e:
+        print(f"⚠️ Error al conectar consumidor de eventos-pago: {e}")
+        logger.error(f"Error al conectar consumidor de eventos-pago: {e}")
         traceback.print_exc()
     finally:
         if cliente:

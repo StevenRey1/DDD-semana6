@@ -13,3 +13,13 @@ class ProcesarPago(Record):
     idSocio = String()
     monto = Float()
     fechaEvento = String()
+
+class PagoProcesado(Record):
+    
+        idTransaction = String()  # Opcional en el contrato, obligatorio en Avro
+        idPago = String()
+        idEvento = String() 
+        idSocio = String()
+        monto = Float()
+        estado = String()
+        fechaEvento = String()

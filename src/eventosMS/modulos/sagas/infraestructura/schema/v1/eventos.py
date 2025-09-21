@@ -51,3 +51,14 @@ class ReferidoProcesado(EventoIntegracion):
     """
     idTransaction = String(required=False)
     data = ReferidoCommandPayload()
+
+
+class PagoProcesado(Record):
+    
+        idTransaction = String()  # Opcional en el contrato, obligatorio en Avro
+        idPago = String()
+        idEvento = String() 
+        idSocio = String()
+        monto = Float()
+        estado = String()
+        fechaEvento = String()
