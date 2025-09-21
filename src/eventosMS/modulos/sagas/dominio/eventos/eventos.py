@@ -2,9 +2,9 @@
 from typing import Optional
 from eventosMS.seedwork.dominio.eventos import (EventoDominio)
 from dataclasses import dataclass, field
- 
-@dataclass    
-class EventoRegistradoPayload():
+
+@dataclass 
+class EventoRegistrado(EventoDominio):
     idTransaction: str = None
     idEvento: str = None
     tipoEvento : str = None
@@ -13,10 +13,7 @@ class EventoRegistradoPayload():
     monto: float = None
     estado : str = None
     fechaEvento : str = None
-    
-@dataclass 
-class EventoProcesado(EventoDominio):
-    data = EventoRegistradoPayload()
+    comando: str = None
 
 @dataclass
 class CrearEvento(EventoDominio):

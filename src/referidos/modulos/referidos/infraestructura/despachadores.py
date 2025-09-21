@@ -6,7 +6,7 @@ import datetime
 
 
 # Importamos el nuevo evento unificado
-from modulos.referidos.infraestructura.schema.v2.eventos_tracking import ReferidoProcesado
+from modulos.referidos.infraestructura.schema.v2.eventos_tracking import ReferidoProcesado, ReferidoCommandPayload
 
 
 
@@ -39,15 +39,19 @@ class Despachador:
         try:
             print(f"📤 [DESPACHADOR] Publicando ReferidoProcesado con estado '{estado}': {datos}")
             
-            evento = ReferidoProcesado(
-                idTransaction=datos.get('idTransaction'),
+            payload = ReferidoCommandPayload(
                 idEvento=datos.get('idEvento'),
                 idSocio=datos.get('idSocio'),
                 monto=datos.get('monto'),
-                estado_referido=estado,
+                estadoEvento=estado,
                 fechaEvento=datos.get('fechaEvento')
             )
             
+            evento = ReferidoProcesado(
+                idTransaction=datos.get('idTransaction'),
+                data=payload
+            )
+            print(f"📤 [DESPACHADOR] Publicando ReferidoProcesado {evento.__dict__}")
             self._publicar_mensaje(evento, 'eventos-referido')
             print(f"✅ [DESPACHADOR] Evento ReferidoProcesado publicado exitosamente!")
             

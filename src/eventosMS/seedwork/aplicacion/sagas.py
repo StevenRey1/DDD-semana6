@@ -20,6 +20,7 @@ class CoordinadorSaga(ABC):
     def publicar_comando(self,evento: EventoDominio, tipo_comando: type):
         comando = self.construir_comando(evento, tipo_comando)
         print("publicar_comando - Publicando comando:", type(comando).__name__)
+        print(f"comando - {comando}")
         ejecutar_commando(comando)
 
     @abstractmethod
@@ -87,15 +88,13 @@ class CoordinadorOrquestacion(CoordinadorSaga, ABC):
     def procesar_evento(self, evento: EventoDominio):
         paso, index = self.obtener_paso_dado_un_evento(evento)
         if  self.es_ultima_transaccion(index) and not isinstance(evento, paso.error):
-            print("es ultima transaccion:", self.es_ultima_transaccion(index))
-            print("instance evento:", isinstance(evento, paso.error))
             print("Último evento exitoso recibido, terminando saga...")
             self.terminar()
         elif isinstance(evento, paso.error):
             print("Evento de error recibido, ejecutando compensación...")
-            self.publicar_comando(evento, self.pasos[index-1].compensacion)
+            self.publicar_comando(evento, self.pasos[index].compensacion)
         elif isinstance(evento, paso.evento):
             print("Evento exitoso recibido, ejecutando siguiente comando...")
-            self.publicar_comando(evento, self.pasos[index+1].comando)
+            self.publicar_comando(evento, self.pasos[index].comando)
 
 

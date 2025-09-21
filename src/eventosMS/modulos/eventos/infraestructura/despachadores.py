@@ -31,6 +31,9 @@ class Despachador:
         print('===================================================================')
         # =======================================
         # Determinamos el tipo de evento de dominio para saber qué payload crear
+        print(f"Evento: {evento}")
+        print(f"Evento: {evento.__dict__}")
+
         if isinstance(evento, EventoRegistrado):
             payload = EventoRegistradoPayload(
                 idTransaction=evento.id_transaction,
@@ -42,6 +45,7 @@ class Despachador:
                 estado=str(evento.estado),
                 fechaEvento=str(evento.fecha_evento)
             )
+            print(f"Payload: {payload.__dict__}")
             evento_integracion = EventoEventoRegistrado(data=payload)
         else:
             # Si no reconocemos el evento, no hacemos nada.

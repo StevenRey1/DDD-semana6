@@ -28,18 +28,22 @@ class CrearEvento(Comando):
 class CrearEventoHandler(EventoBaseHandler):
 
     def handle(self, comando: CrearEvento):
-        
+        print(f"EVENTO-DTO-TRANS {comando}")
         # Crear DTO solo con los campos básicos para la BD (sin comando, id_transaction)
         evento_dto = EventoDTO(
             tipo=comando.tipo,
             id_socio=comando.id_socio,
             id_referido=comando.id_referido,
             monto=comando.monto,
-            fecha_evento=comando.fecha_evento
+            fecha_evento=comando.fecha_evento,
+            id_transaction=comando.id_transaction,
         )
 
         # Siempre crear el evento en BD (flujo original)
         evento: Evento = self.fabrica_eventos.crear_objeto(evento_dto, MapeadorEvento())
+        evento.id_transaction = comando.id_transaction
+
+        print(f"EVENTO-DTO-TRANS {evento}")
         evento.crear_evento(evento) # Método del agregado que dispara el evento de dominio
 
         repositorio = self.fabrica_repositorio.crear_objeto(RepositorioEventos.__class__)

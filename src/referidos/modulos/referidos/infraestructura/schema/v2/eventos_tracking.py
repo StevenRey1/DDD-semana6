@@ -65,23 +65,23 @@ class VentaReferidaRechazada(Record):
     """
     idEvento = String()
 
-class ReferidoProcesado(EventoIntegracion):
+class ReferidoCommandPayload(Record):
     """
-    Evento publicado cuando un referido es procesado (confirmado o rechazado).
-    Tópico: eventos-referido
-    Estructura según especificación:
-    {
-      "idTransaction": "222e4567-e89b-12d3-a456-98546546544",
-      "idEvento": "uuid",
-      "idSocio": "uuid",
-      "monto": 123.45,
-      "estado_referido": "confirmado | rechazado",
-      "fechaEvento": "2025-09-09T20:00:00Z"
-    }
+    Payload para referido
     """
-    idTransaction = String()
+    tipoEvento = String()
     idEvento = String()
+    idReferido = String()
     idSocio = String()
     monto = Float()
-    estado_referido = String()
     fechaEvento = String()
+    estadoEvento = String()
+
+class ReferidoProcesado(EventoIntegracion):
+    """
+    Evento de comando para iniciar o cancelar transacciones
+    Incluye información de venta creada
+    Tópico: comandos-transaccion
+    """
+    idTransaction = String(required=False)
+    data = ReferidoCommandPayload()

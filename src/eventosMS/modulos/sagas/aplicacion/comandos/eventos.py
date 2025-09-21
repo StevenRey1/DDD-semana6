@@ -1,6 +1,5 @@
 
 from dataclasses import dataclass
-from eventosMS.modulos.sagas.dominio.eventos.eventos import EventoRegistradoPayload
 from eventosMS.seedwork.aplicacion.comandos import Comando, ComandoHandler
 from eventosMS.seedwork.aplicacion.comandos import ejecutar_commando as comando
 from eventosMS.modulos.sagas.infraestructura.despachadores import Despachador
@@ -47,7 +46,7 @@ class EventoError():
 
 class EventoCompensacion():
     ...
-    
+
 
 class EventoCommandHandler(ComandoHandler):
     def handle(self, commando: EventoCommand):

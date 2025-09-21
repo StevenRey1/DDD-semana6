@@ -5,7 +5,7 @@ import json
 from pulsar.schema import *
 
 from modulos.referidos.infraestructura.schema.v2.eventos import EventoReferidoConfirmado, EventoReferidoCreado
-from modulos.referidos.infraestructura.schema.v2.eventos_tracking import EventoRegistrado
+from modulos.referidos.infraestructura.schema.v2.eventos_tracking import EventoRegistrado, ReferidoProcesado
 from modulos.referidos.infraestructura.schema.v2.comandos import ComandoCrearReferido
 from modulos.referidos.aplicacion.comandos.generar_referido import GenerarReferidoCommand
 from seedwork.infraestructura import utils
@@ -26,7 +26,7 @@ def suscribirse_a_eventos_tracking():
             'comando-referido',  # Tópico según especificación
             consumer_type=_pulsar.ConsumerType.Shared,
             subscription_name='referidos-sub-comando-referido',
-            schema=AvroSchema(EventoRegistrado),
+            schema=AvroSchema(ReferidoProcesado),
             receiver_queue_size=1000,
             max_total_receiver_queue_size_across_partitions=50000,
             consumer_name='referidos-consumer'
@@ -47,8 +47,9 @@ def suscribirse_a_eventos_tracking():
                         idReferido=evento_data.data.idReferido,
                         idSocio=evento_data.data.idSocio,
                         monto=evento_data.data.monto,
-                        estado=evento_data.data.estado,
-                        fechaEvento=evento_data.data.fechaEvento
+                        estado=evento_data.data.estadoEvento,
+                        fechaEvento=evento_data.data.fechaEvento,
+                        idTransaction=evento_data.idTransaction
                     )
                     # Ejecutar comando
                     ejecutar_commando(comando)
