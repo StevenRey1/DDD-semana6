@@ -23,3 +23,26 @@ class EventoCommand(EventoIntegracion):
     comando = String()  # "Iniciar" o "Cancelar"
     idTransaction = String(required=False)  # Campo opcional
     data = EventoCommandPayload()
+
+
+class ReferidoCommandPayload(Record):
+    """
+    Payload para referido
+    """
+    tipoEvento = String()
+    idEvento = String()
+    idReferido = String()
+    idSocio = String()
+    monto = Float()
+    fechaEvento = String()
+    estadoEvento = String()
+
+class ReferidoCommand(EventoIntegracion):
+    """
+    Evento de comando para iniciar o cancelar transacciones
+    Incluye información de venta creada
+    Tópico: comandos-transaccion
+    """
+    comando = String()
+    idTransaction = String(required=False)
+    data = ReferidoCommandPayload()

@@ -1,5 +1,7 @@
+import re
 from eventosMS.modulos.sagas.aplicacion.comandos.eventos import EventoCommand, EventoCommandPayload, IniciarSagaPago
-from eventosMS.modulos.sagas.dominio.eventos.eventos import CrearEvento, EventoProcesado, EventoError, EventoCompensacion
+from eventosMS.modulos.sagas.aplicacion.comandos.referidos import ReferidoCommand
+from eventosMS.modulos.sagas.dominio.eventos.eventos import CrearEvento, EventoError, EventoCompensacion, EventoRegistrado
 from eventosMS.seedwork.aplicacion.sagas import CoordinadorOrquestacion, Transaccion, Inicio, Fin
 from eventosMS.seedwork.aplicacion.comandos import Comando
 from eventosMS.seedwork.dominio.eventos import EventoDominio
@@ -14,10 +16,8 @@ class CoordinadorPagos(CoordinadorOrquestacion):
         self.pasos = [
             Inicio(index=0),
             Transaccion(index=1, comando=EventoCommand, evento=CrearEvento, error=EventoError, compensacion=EventoCompensacion, exitosa=True),
-            Transaccion(index=2, comando=EventoCommand, evento=CrearEvento, error=EventoError, compensacion=EventoCompensacion, exitosa=True),
-            #Transaccion(index=2, comando=PagarReserva, evento=ReservaPagada, error=PagoFallido, compensacion=RevertirPago),
-            #Transaccion(index=3, comando=ConfirmarReserva, evento=ReservaGDSConfirmada, error=ConfirmacionFallida, compensacion=ConfirmacionGDSRevertida),
-            #Transaccion(index=4, comando=AprobarReserva, evento=ReservaAprobada, error=AprobacionReservaFallida, compensacion=CancelarReserva),
+            Transaccion(index=2, comando=ReferidoCommand, evento=EventoRegistrado, error=EventoError, compensacion=EventoCompensacion, exitosa=True),
+            #Transaccion(index=3, comando=ReferidoCommand, evento=EventoRegistrado, error=EventoError, compensacion=EventoCompensacion, exitosa=True),
             Fin(index=3)
         ]
 
@@ -36,6 +36,10 @@ class CoordinadorPagos(CoordinadorOrquestacion):
         # TODO Transforma un evento en la entrada de un comando
         # Por ejemplo si el evento que llega es ReservaCreada y el tipo_comando es PagarReserva
         # Debemos usar los atributos de ReservaCreada para crear el comando PagarReserva
+        print("construir_comando - Construyendo comando")
+        print("evento:", evento)
+        print("tipo_comando:", tipo_comando)
+
         if isinstance(evento, CrearEvento) and tipo_comando == EventoCommand:
             print("construir_comando - Construyendo comando para evento CrearEvento")
             
@@ -50,6 +54,20 @@ class CoordinadorPagos(CoordinadorOrquestacion):
                 
             )
             print("construir_comando - Comando construido:", comando)
+            return comando
+        elif isinstance(evento, EventoRegistrado) and tipo_comando == ReferidoCommand:
+            print("construir_comando - Construyendo comando para evento EventoRegistrado")
+            comando = ReferidoCommand(
+                idSocio=evento.idSocio,
+                idReferido=evento.idReferido,
+                idEvento=evento.idEvento,
+                monto=evento.monto,
+                estado=evento.estado,
+                fechaEvento=evento.fechaEvento,
+                tipoEvento=evento.tipoEvento,
+                idTransaction=evento.idTransaction,
+                comando=evento.comando
+            )
             return comando
 
 

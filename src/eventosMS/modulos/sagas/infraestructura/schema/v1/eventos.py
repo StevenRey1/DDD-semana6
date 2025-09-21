@@ -15,3 +15,17 @@ class IniciarSagaPagoPayload(Record):
     
 class IniciarSagaPago(EventoIntegracion):
     data = IniciarSagaPagoPayload()
+
+
+class EventoRegistradoPayload(Record):
+    idTransaction = String(required=False)
+    idEvento = String()
+    tipoEvento = String()
+    idReferido = String()
+    idSocio = String()
+    monto = Float()
+    estado = String()
+    fechaEvento = String()
+
+class EventoEventoRegistrado(EventoIntegracion):
+    data = EventoRegistradoPayload()

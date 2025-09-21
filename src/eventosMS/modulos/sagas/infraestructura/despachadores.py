@@ -5,7 +5,7 @@ import datetime
 
 # Importamos TODOS los eventos y payloads que este despachador puede manejar
 from modulos.sagas.infraestructura.schema.v1.comandos import (
-    EventoCommand, EventoCommandPayload
+    EventoCommand, EventoCommandPayload, ReferidoCommandPayload, ReferidoCommand
 )
 # Importamos los eventos de DOMINIO para poder identificarlos
 
@@ -26,7 +26,7 @@ class Despachador:
 
     def publicar_evento_command(self, mensaje: dict):
         print('===================================================================')
-        print(f'¡DESPACHADOR: Publicando evento en el tópico {"eventos-comando"}! ID: {mensaje.get("idEvento")}')
+        print(f'¡SAGA-DESPACHADOR: Publicando evento en el tópico {"eventos-comando"}! ID: {mensaje}')
         print('===================================================================')
         # =======================================
         # Determinamos el tipo de evento de dominio para saber qué payload crear
@@ -45,3 +45,29 @@ class Despachador:
 
         # Publicamos el evento de integración que acabamos de crear
         self._publicar_mensaje(evento_integracion, 'eventos-comando')
+
+    def publicar_referido_command(self, mensaje: dict):
+        print('===================================================================')
+        print(f'¡SAGA-DESPACHADOR: Publicando evento en el tópico {"referido-comando"}! ID: {mensaje}')
+        print('===================================================================')
+        # =======================================
+        # Determinamos el tipo de evento de dominio para sabe   r qué payload crear
+        print(mensaje)
+        payload = ReferidoCommandPayload(
+                idSocio=str(mensaje.get('idSocio')),
+                idReferido=str(mensaje.get('idReferido')),
+                idEvento=str(mensaje.get('idEvento')),
+                monto=float(mensaje.get('monto', 0)),
+                estado=str(mensaje.get('estado')),
+                fechaEvento=str(mensaje.get('fechaEvento')),
+                tipoEvento=str(mensaje.get('tipoEvento'))
+        )
+
+        evento_integracion = ReferidoCommand(
+            idTransaction = str(mensaje.get('idTransaction')),
+            comando = str(mensaje.get('comando')),
+            data = payload
+        )
+
+        # Publicamos el evento de integración que acabamos de crear
+        self._publicar_mensaje(evento_integracion, 'comando-referido')
