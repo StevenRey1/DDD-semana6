@@ -7,4 +7,4 @@ COPY . /app/
 ENV PYTHONPATH=/app/src
 EXPOSE 8004
 # Comando para ejecutar la app Flask
-CMD ["python", "-m", "flask", "--app", "src/referidos/api", "run", "--host=0.0.0.0", "--port=8004"]
+CMD ["python", "-u", "-m", "flask", "--app", "src/referidos/api", "run", "--host=0.0.0.0", "--port=8004"]

@@ -36,6 +36,7 @@ class GenerarReferidoCommand(Comando):
     monto: float
     fechaEvento: str
     estado: str = "pendiente"  # Por defecto pendiente
+    idTransaction: str = field(default=None)
 
 class GenerarReferidoHandler(CrearReferidoBaseHandler):
     """
@@ -104,13 +105,16 @@ class GenerarReferidoHandler(CrearReferidoBaseHandler):
         # Por el momento todos serán confirmados
         despachador = Despachador()
         try:
+            print("DATOS-CONFIRMACION")
+            print(comando.__dict__)
             datos_confirmacion = {
                 'idEvento': comando.idEvento,
                 'idReferido': comando.idReferido,
                 'idSocio': comando.idSocio,
-                'monto': comando.monto * 0.1,  # 10% de comisión por ejemplo
+                'monto': comando.monto,
                 'tipoEvento': TipoEvento.VENTA.value,
-                'fechaEvento': datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
+                'fechaEvento': datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ'),
+                'idTransaction': comando.idTransaction
             }
             
             despachador.publicar_referido_procesado(datos_confirmacion, estado='confirmado')

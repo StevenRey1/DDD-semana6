@@ -37,7 +37,7 @@ class ReferidoCommandPayload(Record):
     fechaEvento = String()
     estadoEvento = String()
 
-class ReferidoCommand(EventoIntegracion):
+class ReferidoProcesado(EventoIntegracion):
     """
     Evento de comando para iniciar o cancelar transacciones
     Incluye información de venta creada

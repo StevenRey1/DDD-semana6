@@ -47,7 +47,7 @@ class Despachador:
                 estado_referido=estado,
                 fechaEvento=datos.get('fechaEvento')
             )
-            
+            print(f"📤 [DESPACHADOR] Publicando ReferidoProcesado {evento.__dict__}")
             self._publicar_mensaje(evento, 'eventos-referido')
             print(f"✅ [DESPACHADOR] Evento ReferidoProcesado publicado exitosamente!")
             

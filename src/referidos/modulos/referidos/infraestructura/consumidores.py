@@ -47,8 +47,9 @@ def suscribirse_a_eventos_tracking():
                         idReferido=evento_data.data.idReferido,
                         idSocio=evento_data.data.idSocio,
                         monto=evento_data.data.monto,
-                        estado=evento_data.data.estado,
-                        fechaEvento=evento_data.data.fechaEvento
+                        estado=evento_data.data.estadoEvento,
+                        fechaEvento=evento_data.data.fechaEvento,
+                        idTransaction=evento_data.idTransaction
                     )
                     # Ejecutar comando
                     ejecutar_commando(comando)
