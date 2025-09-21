@@ -18,19 +18,13 @@ class PagoCommandHandler(PagoBaseHandler):
     
     def handle(self, comando: PagoCommand):
         print(f"🔄 Ejecutando PagoCommandHandler - Comando: {comando.comando}")
-
+        self._iniciar_pago(comando)
         if comando.data.monto <= 500:
             return self._completar_pago(comando)
-
-        
-        if comando.comando == TipoComandoPago.INICIAR:
-            return self._iniciar_pago(comando)
-        elif comando.comando == TipoComandoPago.CANCELAR:
-            return self._cancelar_pago(comando)
-        elif comando.comando == TipoComandoPago.COMPLETAR:
-            return self._completar_pago(comando)
         else:
-            raise ValueError(f"Comando no soportado: {comando.comando}")
+            return self._cancelar_pago(comando)
+        
+
     
     def _iniciar_pago(self, comando: PagoCommand):
         """Lógica para iniciar un pago"""
@@ -62,7 +56,7 @@ class PagoCommandHandler(PagoBaseHandler):
             session.commit()
             
             # Publicar evento PagoProcesado
-            self._publicar_evento_procesado(repo, pago_orm, comando.idTransaction, "solicitado")
+            # self._publicar_evento_procesado(repo, pago_orm, comando.idTransaction, "solicitado")
             print(f"✅ Pago {idPago} iniciado exitosamente")
             
             return pago_orm
@@ -132,7 +126,7 @@ class PagoCommandHandler(PagoBaseHandler):
                 idEvento=pago.idEvento,
                 idSocio=pago.idSocio,
                 monto=float(pago.monto),
-                fechaEvento=pago.fechaEvento,
+                fechaEvento=str(pago.fechaEvento),
                 estado=estado
             )
             intentos = 0
