@@ -65,6 +65,10 @@ app.include_router(graphql_app, prefix="/v1/graphql")
 # Incluir API v1 router - TODO: implementar router REST
 # app.include_router(v1, prefix="/v1")
 
+@app.get('/health')
+async def health():
+    return {"status": "up"}
+
 @app.get('/stream')
 async def stream_mensajes(request: Request):
     print(f"🔄 Nueva conexión SSE establecida")

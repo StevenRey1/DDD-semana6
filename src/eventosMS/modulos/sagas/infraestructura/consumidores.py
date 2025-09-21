@@ -56,8 +56,10 @@ def subscribirse_a_eventos_bff(app):
                         monto=datos.data.monto,
                         fecha_evento=datos.data.fechaEvento,
                         comando="Iniciar",
-                        id_transaction=datos.data.idTransaction
+                        id_transaction=datos.data.idTransaction,
+                        correlation_id=datos.data.idTransaction  # unificamos correlation con id_transaction
                     )
+                    print(f"🔗 correlation/id_transaction utilizado como traza: {datos.data.idTransaction}")
                     
                     oir_mensaje(datos_dto)
                     

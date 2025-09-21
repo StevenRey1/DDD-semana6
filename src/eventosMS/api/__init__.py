@@ -12,6 +12,8 @@ def registrar_handlers():
 
 def importar_modelos_alchemy():
     import modulos.eventos.infraestructura.dto
+    # Importar modelos de saga para que SQLAlchemy los registre
+    import modulos.sagas.infraestructura.modelos  # noqa: F401
 
 
 def comenzar_consumidor(app):
