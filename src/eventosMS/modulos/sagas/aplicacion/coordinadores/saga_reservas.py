@@ -5,7 +5,8 @@ from eventosMS.modulos.sagas.dominio.eventos.eventos import CrearEvento, EventoE
 from eventosMS.seedwork.aplicacion.sagas import CoordinadorOrquestacion, Transaccion, Inicio, Fin
 from eventosMS.seedwork.aplicacion.comandos import Comando
 from eventosMS.seedwork.dominio.eventos import EventoDominio
-
+from eventosMS.modulos.sagas.aplicacion.comandos.pagos import PagoCommand
+from eventosMS.modulos.sagas.dominio.eventos.referidos import ReferidoProcesado
 
 
 
@@ -17,8 +18,8 @@ class CoordinadorPagos(CoordinadorOrquestacion):
             Inicio(index=0),
             Transaccion(index=1, comando=EventoCommand, evento=CrearEvento, error=EventoError, compensacion=EventoCompensacion, exitosa=True),
             Transaccion(index=2, comando=ReferidoCommand, evento=EventoRegistrado, error=EventoError, compensacion=EventoCompensacion, exitosa=True),
-            #Transaccion(index=3, comando=ReferidoCommand, evento=EventoRegistrado, error=EventoError, compensacion=EventoCompensacion, exitosa=True),
-            Fin(index=3)
+            Transaccion(index=3, comando=PagoCommand, evento=ReferidoProcesado, error=EventoError, compensacion=EventoCompensacion, exitosa=True),
+            Fin(index=4)
         ]
 
     def iniciar(self):
@@ -67,6 +68,17 @@ class CoordinadorPagos(CoordinadorOrquestacion):
                 tipoEvento=evento.tipoEvento,
                 idTransaction=evento.idTransaction,
                 comando=evento.comando
+            )
+            return comando
+        elif isinstance(evento, ReferidoProcesado) and tipo_comando == PagoCommand:
+            print("construir_comando - Construyendo comando para evento ReferidoProcesado")
+            comando = PagoCommand(
+                idTransaction=evento.idTransaction,
+                comando="Iniciar",
+                idEvento=evento.idEvento,
+                idSocio=evento.idSocio,
+                monto=evento.monto,
+                fechaEvento=evento.fechaEvento
             )
             return comando
 

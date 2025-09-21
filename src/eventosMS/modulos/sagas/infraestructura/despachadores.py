@@ -5,7 +5,7 @@ import datetime
 
 # Importamos TODOS los eventos y payloads que este despachador puede manejar
 from modulos.sagas.infraestructura.schema.v1.comandos import (
-    EventoCommand, EventoCommandPayload, ReferidoCommandPayload, ReferidoProcesado
+    EventoCommand, EventoCommandPayload, ReferidoCommandPayload, ReferidoProcesado, PagoProcesado
 )
 # Importamos los eventos de DOMINIO para poder identificarlos
 
@@ -28,8 +28,10 @@ class Despachador:
             schema = AvroSchema(ReferidoProcesado)
         # Agrega más tipos si lo necesitas
         else:
-            raise ValueError(f"Tipo de mensaje no soportado: {type(mensaje)}")
-        publicador = cliente.create_producer(topico, schema=schema)
+            schema = AvroSchema(mensaje.__class__)
+            #raise ValueError(f"Tipo de mensaje no soportado: {type(mensaje)}")
+        publicador = cliente.create_producer(topico, schema=AvroSchema(mensaje.__class__))
+        # publicador = cliente.create_producer(topico, schema=schema)
         publicador.send(mensaje)
         cliente.close()
 
@@ -81,3 +83,22 @@ class Despachador:
 
         # Publicamos el evento de integración que acabamos de crear
         self._publicar_mensaje(evento_integracion, 'comando-referido')
+
+
+    def publicar_pago_command(self, mensaje: dict):
+        print('===================================================================')
+        print(f'¡SAGA-DESPACHADOR: Publicando evento en el tópico {"comando-pago"}! ID: {mensaje}')
+        print('===================================================================')
+
+        evento_integracion = PagoProcesado(
+            idTransaction = str(mensaje.get('idTransaction')),
+            comando = str(mensaje.get('comando')),
+            idEvento = str(mensaje.get('idEvento')),
+            idSocio = str(mensaje.get('idSocio')),
+            monto = float(mensaje.get('monto', 0)),
+            fechaEvento = str(mensaje.get('fechaEvento'))
+            
+        )
+        print(f"Publicando {evento_integracion}")
+
+        self._publicar_mensaje(evento_integracion, 'comando-pago')

@@ -10,6 +10,7 @@ from modulos.eventos.infraestructura.schema.v1.eventos import PagoCompletado, Ev
 from seedwork.infraestructura import utils
 from seedwork.aplicacion.comandos import ejecutar_commando
 from eventosMS.modulos.sagas.dominio.eventos.eventos import CrearEvento, EventoRegistrado
+from eventosMS.modulos.sagas.dominio.eventos.referidos import ReferidoProcesado as ReferidoProcesadoDominio
 
 
 def subscribirse_a_eventos_bff(app):
@@ -184,8 +185,14 @@ def subscribirse_a_evento_referido(app):
                     logger.info(f"Evento recibido: {datos}")
                     print(f"📋 Datos del evento: {datos}")
                     print(f"📋 Datos del data: {datos.data.__dict__}")
-                    
-                    
+                    pago_dto = ReferidoProcesadoDominio(
+                        idTransaction=datos.idTransaction,
+                        idEvento=datos.data.idEvento,
+                        idSocio=datos.data.idSocio,
+                        monto=datos.data.monto,
+                        fechaEvento=datos.data.fechaEvento
+                    )
+                    oir_mensaje(pago_dto)
                     # acknowledge the message to remove it from the subscription
                     #consumidor.acknowledge(mensaje)
 

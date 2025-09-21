@@ -17,6 +17,7 @@ class PagoCommandMessage(Record):
     Comando de pago que llega vía tópico comando-pago
     Según especificación del contrato
     """
-    comando = String()  # "Iniciar" | "Cancelar"
+    comando = String()  
     idTransaction = String()  # Opcional pero requerido en Avro
     data = PagoCommandData()
+
