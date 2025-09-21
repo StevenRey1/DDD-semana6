@@ -11,20 +11,10 @@ from eventosMS.modulos.sagas.dominio.eventos.pagos import PagoProcesado
 from eventosMS.modulos.sagas.infraestructura.repositorio_saga import RepositorioSaga
 
 
-
 class CoordinadorPagos(CoordinadorOrquestacion):
-    """Coordinador de la Saga de Pagos (versión simplificada con saga_log pedagógico).
-
-    Cambios clave:
-    - Eliminamos el método genérico persistir_en_saga_log y usamos helpers del repositorio.
-    - Un único id de correlación = id_transaction (provisto externamente por los eventos).
-    - Cada fila del log: nombre dinámico (evento o comando) + tipo (inicio, evento_ok, evento_error, comando, fin) + paso.
-    - No gestionamos estados agregados (RUNNING/FAILED) a nivel de instancia, solo el flujo secuencial.
-    """
-
-    def __init__(self, correlacion_id: str | None = None):
-        self._correlacion_id = correlacion_id  # id_transaction
-        self._repo = RepositorioSaga()
+    def __init__(self, correlacion_id: str | None = None, app=None):
+        self._correlacion_id = correlacion_id
+        self._repo = RepositorioSaga(app) if app else None
 
     @property
     def nombre_saga(self):
@@ -59,7 +49,7 @@ class CoordinadorPagos(CoordinadorOrquestacion):
 
 
     def iniciar(self):
-        # Registrar inicio sólo una vez. Si no tenemos correlación, no registramos (pedagógico: asumimos siempre llega).
+        print("Iniciando  de pagos..." + str(self._correlacion_id))
         if self._correlacion_id:
             self._repo.registrar_inicio(self._correlacion_id)
 
@@ -104,6 +94,10 @@ class CoordinadorPagos(CoordinadorOrquestacion):
         except Exception:
             # Evento no reconocido: lo ignoramos en este modelo simplificado
             return
+        
+        print(f"Procesando evento test {type(evento).__name__} en paso {index}")
+        if paso.index == 1:
+            self.iniciar()
 
         if isinstance(paso, Transaccion):
             if isinstance(evento, paso.error):
@@ -126,7 +120,7 @@ class CoordinadorPagos(CoordinadorOrquestacion):
             print("construir_comando - Construyendo comando para evento CrearEvento")
             
             comando = EventoCommand(
-                idTransaction=evento.id,
+                idTransaction=evento.id_transaction,
                 comando=evento.comando,
                 tipoEvento=evento.tipo,
                 idReferido=evento.id_referido,
@@ -165,21 +159,12 @@ class CoordinadorPagos(CoordinadorOrquestacion):
 
 
 # TODO Agregue un Listener/Handler para que se puedan redireccionar eventos de dominio
-def oir_mensaje(mensaje):
-    print("type of message:", type(mensaje))
+def oir_mensaje(mensaje, app):
     if isinstance(mensaje, EventoDominio):
-        # Correlation unificado: usar (correlation_id || id_transaction || id)
-        # Aceptar múltiples variantes para robustez: idTransaction (camel), id_transaction (snake), id genérico
         correlation = (
             getattr(mensaje, 'idTransaction', None)
-            or getattr(mensaje, 'id_transaction', None)
-            or getattr(mensaje, 'id', None)
         )
-        if not correlation:
-            print("[saga] Advertencia: mensaje sin idTransaction/id_transaction, no se registrará saga_log")
-        coordinador = CoordinadorPagos(correlacion_id=str(correlation) if correlation else None)
+        coordinador = CoordinadorPagos(correlacion_id=str(correlation) if correlation else None, app=app)
+
         coordinador.inicializar_pasos()
-        coordinador.iniciar()
         coordinador.procesar_evento(mensaje)
-    else:
-        raise NotImplementedError("El mensaje no es evento de Dominio")

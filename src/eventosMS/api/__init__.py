@@ -8,41 +8,32 @@ from flask_swagger import swagger
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 def registrar_handlers():
-    # Unificar prefijo de paquete para evitar doble carga de módulos
-    import eventosMS.modulos.eventos.aplicacion
+    import modulos.eventos.aplicacion
 
 
 def importar_modelos_alchemy():
-    # Importar modelos usando siempre el mismo namespace raíz
-    import eventosMS.modulos.eventos.infraestructura.dto  # registra tabla 'eventos'
-    import eventosMS.modulos.sagas.infraestructura.modelos  # registra tabla 'saga_log'
+    import modulos.eventos.infraestructura.dto
+    import eventosMS.modulos.sagas.infraestructura.modelos 
 
 
 def comenzar_consumidor(app):
-    """
-    Este es un código de ejemplo. Aunque esto sea funcional puede ser un poco peligroso tener 
-    threads corriendo por si solos. Mi sugerencia es en estos casos usar un verdadero manejador
-    de procesos y threads como Celery.
-    """
-
     import threading
-    import eventosMS.modulos.eventos.infraestructura.consumidores as eventos
-    import eventosMS.modulos.sagas.infraestructura.consumidores as sagas
+    import modulos.eventos.infraestructura.consumidores as eventos
+    import modulos.sagas.infraestructura.consumidores as sagas
+
+    def run_with_context(target, *args):
+        with app.app_context():
+            target(*args)
+
+    threading.Thread(target=run_with_context, args=(eventos.suscribirse_a_eventos_pago, app)).start()
+    threading.Thread(target=run_with_context, args=(eventos.suscribirse_a_comandos_evento, app)).start()
+    threading.Thread(target=run_with_context, args=(sagas.subscribirse_a_eventos_bff, app)).start()
+    threading.Thread(target=run_with_context, args=(sagas.subscribirse_a_eventos_tracking, app)).start()
+    threading.Thread(target=run_with_context, args=(sagas.subscribirse_a_evento_referido, app)).start()
+    threading.Thread(target=run_with_context, args=(sagas.subscribirse_a_eventos_pago, app)).start()
 
 
-    # Suscripción a eventos
-    threading.Thread(target=eventos.suscribirse_a_eventos_pago, args=(app,)).start()
 
-
-    # Suscripción a comandos
-    threading.Thread(target=eventos.suscribirse_a_comandos_evento, args=(app,)).start()
-    
-    # Suscripción a comandos de saga
-    threading.Thread(target=sagas.subscribirse_a_eventos_bff, args=(app,)).start()
-    threading.Thread(target=sagas.subscribirse_a_eventos_tracking, args=(app,)).start()
-    threading.Thread(target=sagas.subscribirse_a_evento_referido, args=(app,)).start()
-
-    threading.Thread(target=sagas.subscribirse_a_eventos_pago, args=(app,)).start()
 
 def create_app(configuracion={}):
     # Init la aplicacion de Flask

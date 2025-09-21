@@ -1,49 +1,74 @@
-from eventosMS.config.db import db
-from .modelos import SagaLog
+from config.db import db
+from eventosMS.modulos.sagas.infraestructura.modelos import SagaLog
 import uuid
-from typing import Optional
-
 
 class RepositorioSaga:
-    """Repositorio mínimo (pedagógico) para registrar la evolución de una sola saga.
+    def __init__(self, app):
+        self.app = app
 
-    Decisión: solo una saga -> la columna 'nombre' almacena directamente el nombre
-    del evento, comando o marcador (Inicio, Fin, CrearEvento, ReferidoCommand, etc.).
-    No usamos 'detalle'.
-    """
+    def _insertar(self, *, tipo, nombre, paso, estado, id_transaction):
+        with self.app.app_context():  # 👈 aseguramos el contexto
+            entry = SagaLog(
+                id=str(uuid.uuid4()),
+                id_transaction=id_transaction,
+                tipo=tipo,
+                nombre=nombre,
+                paso=paso,
+                estado=estado
+            )
+            db.session.add(entry)
+            db.session.commit()
+            return entry
 
-    def _insertar(self, *, tipo: str, nombre: str, paso: int | None, estado: str, id_transaction: str):
-        entry = SagaLog(
-            id=str(uuid.uuid4()),
-            nombre=nombre,              # Aquí guardamos el nombre dinámico del evento/comando
-            id_transaction=id_transaction,
-            tipo=tipo,
-            paso=paso,
-            estado=estado
+    def registrar_inicio(self, id_transaction):
+        return self._insertar(
+            tipo='inicio',
+            nombre='Inicio',
+            paso=0,
+            estado='RUNNING',
+            id_transaction=id_transaction
         )
-        db.session.add(entry)
-        db.session.commit()
-        return entry
 
-    # ------------------ Helpers de registro ------------------ #
-    def registrar_inicio(self, id_transaction: str):
-        return self._insertar(tipo='inicio', nombre='Inicio', paso=0, estado='RUNNING', id_transaction=id_transaction)
+    def registrar_fin(self, id_transaction, paso, exito=True):
+        return self._insertar(
+            tipo='fin',
+            nombre='Fin',
+            paso=paso,
+            estado='COMPLETED' if exito else 'FAILED',
+            id_transaction=id_transaction
+        )
 
-    def registrar_evento_ok(self, id_transaction: str, nombre_evento: str, paso: int):
-        return self._insertar(tipo='evento_ok', nombre=nombre_evento, paso=paso, estado='OK', id_transaction=id_transaction)
+    def registrar_comando(self, id_transaction, nombre, paso, pendiente=True):
+        return self._insertar(
+            tipo='comando',
+            nombre=nombre,
+            paso=paso,
+            estado='PENDING' if pendiente else 'RUNNING',
+            id_transaction=id_transaction
+        )
 
-    def registrar_evento_error(self, id_transaction: str, nombre_evento: str, paso: int):
-        return self._insertar(tipo='evento_error', nombre=nombre_evento, paso=paso, estado='ERROR', id_transaction=id_transaction)
+    def registrar_evento_ok(self, id_transaction, nombre, paso):
+        return self._insertar(
+            tipo='evento_ok',
+            nombre=nombre,
+            paso=paso,
+            estado='OK',
+            id_transaction=id_transaction
+        )
 
-    def registrar_comando(self, id_transaction: str, nombre_comando: str, paso: int, pendiente: bool = True):
-        estado = 'PENDING' if pendiente else 'OK'
-        return self._insertar(tipo='comando', nombre=nombre_comando, paso=paso, estado=estado, id_transaction=id_transaction)
+    def registrar_evento_error(self, id_transaction, nombre, paso):
+        return self._insertar(
+            tipo='evento_error',
+            nombre=nombre,
+            paso=paso,
+            estado='ERROR',
+            id_transaction=id_transaction
+        )
 
-    def registrar_fin(self, id_transaction: str, paso: int, exito: bool = True):
-        estado = 'COMPLETED' if exito else 'FAILED'
-        return self._insertar(tipo='fin', nombre='Fin', paso=paso, estado=estado, id_transaction=id_transaction)
-
-    # ------------------ Consultas ------------------ #
-
-
-
+    def ultimo(self, id_transaction):
+        with self.app.app_context():
+            return (
+                SagaLog.query.filter_by(id_transaction=id_transaction)
+                .order_by(SagaLog.timestamp.desc())
+                .first()
+            )
