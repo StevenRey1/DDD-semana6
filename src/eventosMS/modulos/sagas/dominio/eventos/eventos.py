@@ -23,7 +23,8 @@ class CrearEvento(EventoDominio):
     fecha_evento: str = None
     tipo: str = None
     comando: Optional[str] = None  # "Iniciar" | "Cancelar"
-    id_transaction: Optional[str] = None
+    id_transaction: Optional[str] = None  # ID de negocio (transacción de pago/evento)
+    correlation_id: Optional[str] = None  # ID técnico para trazar la saga (separado de id_transaction)
     
 @dataclass
 class EventoError(EventoDominio):

@@ -12,7 +12,21 @@ from eventosMS.modulos.sagas.dominio.eventos.pagos import PagoProcesado
 
 
 class CoordinadorPagos(CoordinadorOrquestacion):
-    
+    def __init__(self, correlacion_id: str | None = None):
+        """Coordinador de la Saga de Pagos.
+
+        Unificación: usamos id_transaction como correlation id (traza) cuando existe.
+        - Si el listener no recibe correlacion_id explícito, se intentará usar id_transaction o id del evento.
+        - Ya no se genera un UUID separado para correlation; la trazabilidad se apoya en el id de negocio.
+        """
+        self._correlacion_id = correlacion_id
+        from eventosMS.modulos.sagas.infraestructura.repositorio_saga import RepositorioSaga
+        self._repo = RepositorioSaga()
+        self._saga_instancia = None
+
+    @property
+    def nombre_saga(self):
+        return "SagaPagos"
 
     def inicializar_pasos(self):
         self.pasos = [
@@ -24,16 +38,56 @@ class CoordinadorPagos(CoordinadorOrquestacion):
             Fin(index=5)
         ]
 
+    def _asegurar_instancia(self):
+        if not self._saga_instancia:
+            correlacion = self._correlacion_id or "sin-correlacion"
+            self._saga_instancia = self._repo.crear_o_recuperar_saga(self.nombre_saga, correlacion, total_pasos=len(self.pasos)-2)  # Excluye Inicio/Fin
+        return self._saga_instancia
+
     def iniciar(self):
         self.persistir_en_saga_log(self.pasos[0])
-    
+
     def terminar(self):
         self.persistir_en_saga_log(self.pasos[-1])
 
     def persistir_en_saga_log(self, mensaje):
-        # TODO Persistir estado en DB
-        # Probablemente usted podría usar un repositorio para ello
-        ...
+        instancia = self._asegurar_instancia()
+        if isinstance(mensaje, Inicio):
+            self._repo.registrar_step(instancia.id, 0, 'Inicio', 'inicio', 'OK', detalle='Saga iniciada')
+        elif isinstance(mensaje, Fin):
+            self._repo.registrar_step(instancia.id, mensaje.index, 'Fin', 'fin', 'OK', detalle='Saga finalizada')
+            self._repo.actualizar_estado_saga(instancia.id, 'COMPLETED', paso_actual=mensaje.index, finalizada=True)
+        elif isinstance(mensaje, Transaccion):
+            # Registrar intento de publicar comando
+            self._repo.registrar_step(instancia.id, mensaje.index, f'Transaccion-{mensaje.index}', 'publicar_comando', 'PENDING', detalle=f'Comando {mensaje.comando.__name__}')
+        else:
+            # Mensaje desconocido
+            self._repo.registrar_step(instancia.id, -1, 'Desconocido', 'debug', 'OK', detalle=str(type(mensaje)))
+
+    def procesar_evento(self, evento: EventoDominio):
+        """Extiende la lógica base para registrar eventos de éxito o error."""
+        instancia = self._asegurar_instancia()
+        try:
+            paso, index = self.obtener_paso_dado_un_evento(evento)
+        except Exception as e:
+            # Evento no asociado: registramos debug y salimos
+            self._repo.registrar_step(instancia.id, -1, 'EventoNoMapeado', 'evento_desconocido', 'OK', detalle=str(type(evento)))
+            return
+
+        # Determinar si es error o éxito
+        es_error = isinstance(evento, paso.error)
+        accion = 'evento_error' if es_error else 'evento_ok'
+        estado = 'ERROR' if es_error else 'OK'
+        self._repo.registrar_step(instancia.id, index, f'Transaccion-{index}', accion, estado, detalle=type(evento).__name__)
+
+        # Actualizar estado saga si es error
+        if es_error:
+            self._repo.actualizar_estado_saga(instancia.id, 'FAILED', paso_actual=index)
+        else:
+            self._repo.actualizar_estado_saga(instancia.id, 'RUNNING', paso_actual=index)
+
+        # Reutilizar flujo base (publicación de siguiente comando o terminación)
+        super().procesar_evento(evento)
 
     def construir_comando(self, evento: EventoDominio, tipo_comando: type):
         # TODO Transforma un evento en la entrada de un comando
@@ -89,8 +143,15 @@ class CoordinadorPagos(CoordinadorOrquestacion):
 def oir_mensaje(mensaje):
     print("type of message:", type(mensaje))
     if isinstance(mensaje, EventoDominio):
-        coordinador = CoordinadorPagos()
+        # Correlation unificado: usar (correlation_id || id_transaction || id)
+        correlation = (
+            getattr(mensaje, 'correlation_id', None)
+            or getattr(mensaje, 'id_transaction', None)
+            or getattr(mensaje, 'id', None)
+        )
+        coordinador = CoordinadorPagos(correlacion_id=str(correlation) if correlation else None)
         coordinador.inicializar_pasos()
+        coordinador.iniciar()
         coordinador.procesar_evento(mensaje)
     else:
         raise NotImplementedError("El mensaje no es evento de Dominio")
