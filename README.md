@@ -62,24 +62,22 @@ Para evitar errores de dependencias (schemas Avro no disponibles, consumidores s
 
 2. Crear / registrar (si aplica) los schemas Avro necesarios (si usas script: ./scripts/upload_schemas.sh)
 
-3. Levantar base(s) de datos (PostgreSQL)  
-   docker compose up -d eventos-db
 
-4. Levantar los microservicios de dominio (sin BFF todavía)  
+3. Levantar los microservicios de dominio (sin BFF todavía)  
    docker compose up -d --build eventos referidos pagos notificaciones
 
-5. Verificar health de cada microservicio  
+4. Verificar health de cada microservicio  
    curl http://localhost:8003/health  (Eventos)  
    curl http://localhost:8004/health  (Referidos)  
    curl http://localhost:8080/health  (Pagos)  
    curl http://localhost:8002/health  (Notificaciones)  
 
-6. (Opcional) Confirmar consumidores conectados en logs de “eventos”
+5. (Opcional) Confirmar consumidores conectados en logs de “eventos”
 
-7. Recién después levantar el BFF  
+6. Recién después levantar el BFF  
    docker compose up -d --build bff
 
-8. Finalmente levantar la UI (si existe app frontend)  
+7. Finalmente levantar la UI (si existe app frontend)  
    docker compose up -d --build ui
 
 Si algo falla (por ejemplo “Working outside of application context” o schema no encontrado), detén solo el servicio afectado y vuelve a levantarlo; no reinicies Pulsar salvo que cambies schemas.
@@ -96,14 +94,14 @@ docker-compose -f docker-compose.yml down --volumes --remove-orphans
 
 | Componente        | Puerto | Descripción                                |
 |-------------------|--------|--------------------------------------------|
-| UI (frontend)     | 8081   | Aplicación web (ejemplo Vite)              |
+| UI (frontend)     | 8081   | Aplicación web                             |
 | BFF               | 8000   | Backend For Frontend / API Gateway         |
 | Eventos           | 8003   | Servicio de orquestación + Saga Log        |
 | Referidos         | 8004   | Microservicio referidos                    |
 | Pagos             | 8080   | Microservicio pagos                        |
 | Notificaciones    | 8002   | Microservicio notificaciones (si aplica)   |
 | PostgreSQL eventos| 5435   | Base de datos (alpespartners)              |
-| Pulsar Broker     | 6653   | (o 6650) Puerto binario cliente            |
+| Pulsar Broker     | 6653   | Puerto binario cliente                     |
 
 
 ## 🧪 Flujo de Prueba
@@ -228,6 +226,7 @@ docker system prune -f
 | 8  | Implementación Saga         | Fabiani Lozano                 |
 | 8  | Implementación UI           | Pair programming               |
 | 9  | Readme                      | Nicolas Valderrama - Jesús Rey |
+
 
 
 
