@@ -16,12 +16,12 @@ Este documento describe cómo probar la integración de los microservicios del p
 
 
                 ┌───────────────────────────────┐
-                │            BFF (3000)          │
-                │  (Inicia Saga: CrearEvento)    │
+                │            BFF (8000)         │
+                │  (Inicia Saga: CrearEvento)   │
                 └───────────────┬───────────────┘
                                 │  Evento inicial
                                 ▼
-Referidos (8001)   Pagos (8002)   Notificaciones (8003)   Eventos (8004)
+Referidos (8004)   Pagos (8080)   Notificaciones (8002)   Eventos (8003)
       │                │                │                    │
       │                │                │   (Coordinador Saga + Saga Log)
       │                │                │            │
@@ -96,18 +96,17 @@ docker-compose -f docker-compose.yml down --volumes --remove-orphans
 
 | Componente        | Puerto | Descripción                                |
 |-------------------|--------|--------------------------------------------|
-| UI (frontend)     | 5173   | Aplicación web (ejemplo Vite)              |
-| BFF               | 3000   | Backend For Frontend / API Gateway         |
-| Eventos           | 8004   | Servicio de orquestación + Saga Log        |
-| Referidos         | 8001   | Microservicio referidos                    |
-| Pagos             | 8002   | Microservicio pagos                        |
-| Notificaciones    | 8003   | Microservicio notificaciones (si aplica)   |
+| UI (frontend)     | 8081   | Aplicación web (ejemplo Vite)              |
+| BFF               | 8000   | Backend For Frontend / API Gateway         |
+| Eventos           | 8003   | Servicio de orquestación + Saga Log        |
+| Referidos         | 8004   | Microservicio referidos                    |
+| Pagos             | 8080   | Microservicio pagos                        |
+| Notificaciones    | 8002   | Microservicio notificaciones (si aplica)   |
 | PostgreSQL eventos| 5435   | Base de datos (alpespartners)              |
 | Pulsar Broker     | 6653   | (o 6650) Puerto binario cliente            |
 | Pulsar Web / UI   | 8083   | Consola / Admin (o 8080 según imagen)      |
 
 Nota: Verifica en docker-compose.yml los puertos reales; si tu UI usa otro (ej: 4200 Angular), actualiza la tabla.
-
 ---
 
 ## 🧪 Flujo de Prueba
@@ -232,6 +231,7 @@ docker system prune -f
 | 8  | Implementación Saga         | Fabiani Lozano                 |
 | 8  | Implementación UI           | Pair programming               |
 | 9  | Readme                      | Nicolas Valderrama - Jesús Rey |
+
 
 
 
