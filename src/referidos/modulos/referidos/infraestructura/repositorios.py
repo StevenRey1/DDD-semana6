@@ -33,6 +33,14 @@ class RepositorioReferidosPostgreSQL(RepositorioReferidos):
         print(f"Referido DTO from DB by idReferido {idReferido}: {referido_dto.__dict__}")
         return self.fabrica_referidos.crear_objeto(referido_dto, MapeadorReferido())
 
+    def obtener_por_id_evento(self, idEvento: UUID) -> Referido:
+        """Obtener un referido específico por su evento"""
+        referido_dto = db.session.query(Referido).filter_by(idEvento=str(idEvento)).first()
+        if not referido_dto:
+            raise ValueError(f"evento no encontrado: {idEvento}")
+        print(f"Referido DTO from DB by idEvento {idEvento}: {referido_dto.__dict__}")
+        return self.fabrica_referidos.crear_objeto(referido_dto, MapeadorReferido())
+
     def obtener_por_socio_referido_evento(self, idSocio: UUID, idReferido: UUID, idEvento: UUID) -> Referido:
         referido = db.session.query(Referido).filter_by(
             idSocio=str(idSocio),

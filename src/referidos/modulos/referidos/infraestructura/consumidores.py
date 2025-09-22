@@ -39,22 +39,23 @@ def suscribirse_a_eventos_tracking():
             try:
                 evento_data = mensaje.value()
                 print(f"📨 EventoRegistrado recibido: {evento_data}")     
-                if evento_data.data.tipoEvento in ['registroUsuario', 'compra', 'venta_creada']:
+                print(f"📨 EventoRegistrado recibido: {evento_data.data.__dict__}")     
+                
                     # Crear comando para generar referido
-                    comando = GenerarReferidoCommand(
-                        idEvento=evento_data.data.idEvento,
-                        tipoEvento=evento_data.data.tipoEvento,
-                        idReferido=evento_data.data.idReferido,
-                        idSocio=evento_data.data.idSocio,
-                        monto=evento_data.data.monto,
-                        estado=evento_data.data.estadoEvento,
-                        fechaEvento=evento_data.data.fechaEvento,
-                        idTransaction=evento_data.idTransaction
-                    )
-                    # Ejecutar comando
-                    ejecutar_commando(comando)
-                    print(f"✅ Referido generado para evento: {evento_data.data.idEvento}")
-                    
+                comando = GenerarReferidoCommand(
+                    idEvento=evento_data.data.idEvento,
+                    tipoEvento=evento_data.data.tipoEvento,
+                    idReferido=evento_data.data.idReferido,
+                    idSocio=evento_data.data.idSocio,
+                    monto=evento_data.data.monto,
+                    estado=evento_data.data.estadoEvento,
+                    fechaEvento=evento_data.data.fechaEvento,
+                    idTransaction=evento_data.idTransaction
+                )
+                # Ejecutar comando
+                ejecutar_commando(comando)
+                print(f"✅ Referido generado para evento: {evento_data.data.idEvento}")
+                
                 consumidor.acknowledge(mensaje)
                 
             except Exception as e:

@@ -10,8 +10,9 @@ from seedwork.infraestructura.uow import UnidadTrabajoPuerto
 from seedwork.aplicacion.comandos import Comando
 from dataclasses import dataclass, field
 from seedwork.aplicacion.comandos import ejecutar_commando as comando
-from modulos.referidos.infraestructura.repositorios import RepositorioReferidos
+from modulos.referidos.infraestructura.repositorios import RepositorioReferidosPostgreSQL
 from modulos.referidos.dominio.objetos_valor import EstadoReferido, TipoEvento
+from uuid import UUID
 
 import datetime
 
@@ -43,6 +44,36 @@ class GenerarReferidoHandler(CrearReferidoBaseHandler):
     Handler para procesar el comando GenerarReferidoCommand
     """
     def handle(self, comando: GenerarReferidoCommand):
+        repositorio = self.fabrica_repositorio.crear_objeto(RepositorioReferidosPostgreSQL.__class__)
+        
+        print("======================")
+        print(f"GenerarReferidoHandler - Procesando evento: {comando.tipoEvento}")
+        print(f"IdEvento: {comando.idEvento}, IdSocio: {comando.idSocio}")
+        print("======================")
+
+        if comando.estado == "rechazado":
+            print(f"Estado 'rechazado' detectado para idEvento: {comando.idEvento}. Buscando referido existente...")
+            try:
+                referido_existente = repositorio.obtener_por_id_evento(UUID(comando.idEvento))
+                if referido_existente:
+                    print(f"Referido existente encontrado: {referido_existente.id}. Actualizando estado a 'rechazado'...")
+                    referido_existente.estado = EstadoReferido.RECHAZADO # Asumiendo que EstadoReferido tiene un valor 'RECHAZADO'
+                    
+                    from seedwork.infraestructura.uow import unidad_de_trabajo
+                    uow = unidad_de_trabajo()
+                    with uow:
+                        uow.registrar_batch(repositorio.actualizar, referido_existente)
+                        uow.commit()
+                    print(f"✅ [UoW] Referido {comando.idEvento} actualizado a 'rechazado' exitosamente usando UoW!")
+                    return # Terminar el manejo si se actualizó
+                else:
+                    print(f"⚠️ Referido con idReferido {comando.idReferido} no encontrado. Procediendo con la creación.")
+            except ValueError as e:
+                print(f"❌ Error al buscar referido por idReferido {comando.idReferido}: {e}. Procediendo con la creación.")
+            except Exception as e:
+                print(f"❌ Error inesperado al intentar actualizar referido: {e}. Procediendo con la creación.")
+
+        # Si no es "rechazado" o no se encontró/actualizó un referido existente, proceder con la creación
         # Crear DTO del referido
         referido_dto = ReferidoDTO(
             idSocio=comando.idSocio,
@@ -59,16 +90,8 @@ class GenerarReferidoHandler(CrearReferidoBaseHandler):
         # Crear entidad de dominio
         referido: Referido = self.fabrica_referidos.crear_objeto(referido_dto, MapeadorReferido())
         
-        print("======================")
-        print(f"GenerarReferidoHandler - Procesando evento: {comando.tipoEvento}")
-        print(f"IdEvento: {comando.idEvento}, IdSocio: {comando.idSocio}, IdReferido: {comando.idReferido}")
-        print("======================")
-        
-        # Crear el referido en el dominio
+        # Crear el referido en el dominio (asumiendo que este método inicializa el objeto)
         referido.crear_referido(referido)
-
-        # Persistir en repositorio
-        repositorio = self.fabrica_repositorio.crear_objeto(RepositorioReferidos.__class__)
 
         print("======================")
         print("Referido generado exitosamente, persistiendo en BD usando UoW...")
@@ -80,14 +103,13 @@ class GenerarReferidoHandler(CrearReferidoBaseHandler):
         try:
             # Obtener UoW y repositorio
             uow = unidad_de_trabajo()
-            repositorio = self.fabrica_repositorio.crear_objeto(RepositorioReferidos.__class__)
             
             print(f"🔄 [UoW] Iniciando transacción para referido: {referido.id}")
             
             with uow:
                 # Registrar operación de agregar en UoW
                 uow.registrar_batch(repositorio.agregar, referido)
-                print(f"� [UoW] Batch registrado - Total batches: {len(uow.batches)}")
+                print(f" [UoW] Batch registrado - Total batches: {len(uow.batches)}")
                 
                 # Commit de la UoW (ejecutará todos los batches)
                 uow.commit()
