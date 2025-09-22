@@ -69,10 +69,10 @@ Para evitar errores de dependencias (schemas Avro no disponibles, consumidores s
    docker compose up -d --build eventos referidos pagos notificaciones
 
 5. Verificar health de cada microservicio  
-   curl http://localhost:8004/health  (Eventos)  
-   curl http://localhost:8001/health  (Referidos)  
-   curl http://localhost:8002/health  (Pagos)  
-   curl http://localhost:8003/health  (Notificaciones)  
+   curl http://localhost:8003/health  (Eventos)  
+   curl http://localhost:8004/health  (Referidos)  
+   curl http://localhost:8080/health  (Pagos)  
+   curl http://localhost:8002/health  (Notificaciones)  
 
 6. (Opcional) Confirmar consumidores conectados en logs de “eventos”
 
@@ -104,10 +104,7 @@ docker-compose -f docker-compose.yml down --volumes --remove-orphans
 | Notificaciones    | 8002   | Microservicio notificaciones (si aplica)   |
 | PostgreSQL eventos| 5435   | Base de datos (alpespartners)              |
 | Pulsar Broker     | 6653   | (o 6650) Puerto binario cliente            |
-| Pulsar Web / UI   | 8083   | Consola / Admin (o 8080 según imagen)      |
 
-Nota: Verifica en docker-compose.yml los puertos reales; si tu UI usa otro (ej: 4200 Angular), actualiza la tabla.
----
 
 ## 🧪 Flujo de Prueba
 
@@ -231,6 +228,7 @@ docker system prune -f
 | 8  | Implementación Saga         | Fabiani Lozano                 |
 | 8  | Implementación UI           | Pair programming               |
 | 9  | Readme                      | Nicolas Valderrama - Jesús Rey |
+
 
 
 
