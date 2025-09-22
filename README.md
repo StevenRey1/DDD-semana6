@@ -15,17 +15,32 @@ Este documento describe cómo probar la integración de los microservicios del p
 
 
 
-┌─────────────┐   ┌─────────────┐   ┌─────────────┐   ┌─────────────┐
-│  Referidos  │   │ Pagos       │   │ Notificaciones │ │ Eventos    │
-│  (8003)     │   │ (8080)      │   │ (8002)         │ │ (8003)     │
-└─────┬───────┘   └─────┬───────┘   └─────┬──────────┘ └─────┬──────┘
-         │                │                 │                   │
-         └────────────────┴─────────────────┴──────────────────┘
-                                    │
-                     ┌─────────────────┐
-                     │  Apache Pulsar  │
-                     │  (6653, 8083)   │
-                     └─────────────────┘
+                ┌───────────────────────────────┐
+                │            BFF (3000)          │
+                │  (Inicia Saga: CrearEvento)    │
+                └───────────────┬───────────────┘
+                                │  Evento inicial
+                                ▼
+Referidos (8001)   Pagos (8002)   Notificaciones (8003)   Eventos (8004)
+      │                │                │                    │
+      │                │                │   (Coordinador Saga + Saga Log)
+      │                │                │            │
+      └──────┬─────────┴───────┬────────┴──────┬─────┘
+             │                 │               │
+             │        Apache Pulsar (6653 / 8083)
+             │        Topics: 
+             │          - eventos-* (CrearEvento, EventoRegistrado)
+             │          - referido-* (ReferidoProcesado)
+             │          - pagos-* (PagoProcesado)
+             │          - notificaciones-* (opcional)
+             ▼
+        Coordinador Saga
+        (Orquestación pasos,
+         publica comandos,
+         persiste trazas en saga_log)
+        
+        saga_log (tabla PostgreSQL)
+        Campos: id, id_transaction, tipo, nombre, paso, estado, timestamp
 ```
 
 ---
@@ -188,6 +203,7 @@ docker system prune -f
 | 8  | Implementación Saga         | Fabiani Lozano                 |
 | 8  | Implementación UI           | Pair programming               |
 | 9  | Readme                      | Nicolas Valderrama - Jesús Rey |
+
 
 
 
