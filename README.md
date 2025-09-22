@@ -47,37 +47,66 @@ Referidos (8001)   Pagos (8002)   Notificaciones (8003)   Eventos (8004)
 
 ## 🚀 Despliegue de Servicios
 
-### Linux/Mac
+Para levantar todos los servicios:
 ```bash
-chmod +x test-integration.sh
-./test-integration.sh up
+docker-compose -f docker-compose.yml up -d --build
 ```
 
-### Windows
-```powershell
-.\test-integration.ps1 up
-```
+## ️🚀 Recomendaciones de Arranque (Orden Sugerido)
+
+Para evitar errores de dependencias (schemas Avro no disponibles, consumidores sin broker, etc.) sigue este orden:
+
+1. Construir y levantar Apache Pulsar primero  
+   docker compose up -d --build pulsar  
+   (Espera a que la consola/web esté accesible en http://localhost:8083 si la tienes habilitada)
+
+2. Crear / registrar (si aplica) los schemas Avro necesarios (si usas script: ./scripts/upload_schemas.sh)
+
+3. Levantar base(s) de datos (PostgreSQL)  
+   docker compose up -d eventos-db
+
+4. Levantar los microservicios de dominio (sin BFF todavía)  
+   docker compose up -d --build eventos referidos pagos notificaciones
+
+5. Verificar health de cada microservicio  
+   curl http://localhost:8004/health  (Eventos)  
+   curl http://localhost:8001/health  (Referidos)  
+   curl http://localhost:8002/health  (Pagos)  
+   curl http://localhost:8003/health  (Notificaciones)  
+
+6. (Opcional) Confirmar consumidores conectados en logs de “eventos”
+
+7. Recién después levantar el BFF  
+   docker compose up -d --build bff
+
+8. Finalmente levantar la UI (si existe app frontend)  
+   docker compose up -d --build ui
+
+Si algo falla (por ejemplo “Working outside of application context” o schema no encontrado), detén solo el servicio afectado y vuelve a levantarlo; no reinicies Pulsar salvo que cambies schemas.
+
 
 Para bajar y limpiar:
 ```bash
-docker-compose -f docker-compose.integration.yml down --volumes --remove-orphans
+docker-compose -f docker-compose.yml down --volumes --remove-orphans
 ```
 
 ---
 
-## 📊 Puertos Expuestos
+### Puertos Estándar (ajusta si tu compose difiere)
 
-| Servicio         | Puerto | Descripción                  |
-|------------------|--------|------------------------------|
-| Referidos        | 8004   | API REST                     |
-| Pagos            | 8080   | API REST                     |
-| Notificaciones   | 8002   | API REST                     |
-| Eventos          | 8003   | API REST                     |
-| PostgreSQL (x4)  | 5440+  | BD por microservicio         |
-| Pulsar Broker    | 6653   | Mensajería                   |
-| Pulsar Admin     | 8083   | API de administración        |
-| Pulsar Web UI    | 8084   | Interfaz web                 |
-| Pulsar Manager   | 9529   | Herramienta de gestión       |
+| Componente        | Puerto | Descripción                                |
+|-------------------|--------|--------------------------------------------|
+| UI (frontend)     | 5173   | Aplicación web (ejemplo Vite)              |
+| BFF               | 3000   | Backend For Frontend / API Gateway         |
+| Eventos           | 8004   | Servicio de orquestación + Saga Log        |
+| Referidos         | 8001   | Microservicio referidos                    |
+| Pagos             | 8002   | Microservicio pagos                        |
+| Notificaciones    | 8003   | Microservicio notificaciones (si aplica)   |
+| PostgreSQL eventos| 5435   | Base de datos (alpespartners)              |
+| Pulsar Broker     | 6653   | (o 6650) Puerto binario cliente            |
+| Pulsar Web / UI   | 8083   | Consola / Admin (o 8080 según imagen)      |
+
+Nota: Verifica en docker-compose.yml los puertos reales; si tu UI usa otro (ej: 4200 Angular), actualiza la tabla.
 
 ---
 
@@ -172,7 +201,7 @@ docker-compose -f docker-compose.integration.yml down --volumes --remove-orphans
 ## 🧹 Limpieza
 
 ```bash
-docker-compose -f docker-compose.integration.yml down --volumes --remove-orphans
+docker-compose -f docker-compose.yml down --volumes --remove-orphans
 docker system prune -f
 ```
 
@@ -203,6 +232,7 @@ docker system prune -f
 | 8  | Implementación Saga         | Fabiani Lozano                 |
 | 8  | Implementación UI           | Pair programming               |
 | 9  | Readme                      | Nicolas Valderrama - Jesús Rey |
+
 
 
 
