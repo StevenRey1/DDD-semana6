@@ -21,6 +21,9 @@
           <li><a href="#" class="nav-link px-2 link-dark">Autos</a></li>
           <li><a href="#" class="nav-link px-2 link-dark">Promociones</a></li>
           <li><a href="#" class="nav-link px-2 link-dark">Actividades</a></li>
+          <li><a href="#eventos-section" class="nav-link px-2 link-dark" onclick="mostrarSeccionEventos()">Eventos</a></li>
+          <li><a href="#referidos-section" class="nav-link px-2 link-dark" onclick="mostrarSeccionReferidos()">Referidos</a></li>
+          <li><a href="#pagos-section" class="nav-link px-2 link-dark" onclick="mostrarSeccionPagos()">Pagos</a></li>
         </ul>
 
         <form class="col-12 col-lg-auto mb-3 mb-lg-0 me-lg-3" role="search">
@@ -78,17 +81,77 @@
           </div>
           <button type="submit" class="btn btn-success">Crear Evento</button>
         </form>
-      </div>
-      <div class="row mt-4">
-        <h3>Eventos en Tiempo Real</h3>
-        <div id="eventos-tiempo-real" class="border p-3" style="max-height: 400px; overflow-y: auto;">
-          <!-- Eventos SSE aparecerán aquí -->
+        
+        <div class="row mt-4">
+          <h3>Eventos en Tiempo Real</h3>
+          <div id="eventos-tiempo-real" class="border p-3" style="max-height: 300px; overflow-y: auto;">
+            <!-- Eventos SSE aparecerán aquí -->
+          </div>
         </div>
       </div>
-      <div class="col">
+      
+      <div class="col-7" id="eventos-section" style="display: none;">
+        <div class="row mb-4">
+          <h2>Consultar Eventos por Socio</h2>
+          <form id="consultarEventosForm">
+            <div class="mb-3">
+              <label for="socioId" class="form-label">ID del Socio</label>
+              <input type="text" class="form-control" id="socioId" name="socioId" 
+                     placeholder="123e4567-e89b-12d3-a456-426614174000" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Buscar Eventos</button>
+          </form>
+        </div>
+        
         <div class="row">
-          <img src="media/img/inspirational.jpg" alt="mdo">
-
+          <h3>Eventos del Socio</h3>
+          <div id="eventos-socio" class="border p-3" style="max-height: 400px; overflow-y: auto;">
+            <div class="alert alert-info">Ingrese un ID de socio para buscar sus eventos.</div>
+          </div>
+        </div>
+      </div>
+        
+      <!-- Sección de Referidos -->
+      <div class="col-7" id="referidos-section" style="display: none;">
+        <div class="row mb-4">
+          <h2>Consultar Referidos por Socio</h2>
+          <form id="consultarReferidosForm">
+            <div class="mb-3">
+              <label for="socioIdReferidos" class="form-label">ID del Socio</label>
+              <input type="text" class="form-control" id="socioIdReferidos" name="socioIdReferidos" 
+                     placeholder="123e4567-e89b-12d3-a456-426614174011" required>
+            </div>
+            <button type="submit" class="btn btn-warning">Buscar Referidos</button>
+          </form>
+        </div>
+          
+        <div class="row">
+          <h3>Referidos del Socio</h3>
+          <div id="referidos-socio" class="border p-3" style="max-height: 400px; overflow-y: auto;">
+            <div class="alert alert-info">Ingrese un ID de socio para buscar sus referidos.</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Sección de Pagos -->
+      <div class="col-7" id="pagos-section" style="display: none;">
+        <div class="row mb-4">
+          <h2>Consultar Pago por ID</h2>
+          <form id="consultarPagosForm">
+            <div class="mb-3">
+              <label for="pagoId" class="form-label">ID del Pago</label>
+              <input type="text" class="form-control" id="pagoId" name="pagoId" 
+                     placeholder="a562e186-42ff-4b3b-afdb-8e2366a745c6" required>
+            </div>
+            <button type="submit" class="btn btn-success">Buscar Pago</button>
+          </form>
+        </div>
+          
+        <div class="row">
+          <h3>Información del Pago</h3>
+          <div id="info-pago" class="border p-3" style="max-height: 400px; overflow-y: auto;">
+            <div class="alert alert-info">Ingrese un ID de pago para buscar su información.</div>
+          </div>
         </div>
       </div>
     </div>

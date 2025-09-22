@@ -35,6 +35,9 @@ services:
       PULSAR_PORT: 6650  # Cambiar a 6650 para coincidir con el puerto interno
       PULSAR_TENANT: public
       PULSAR_NAMESPACE: default
+      EVENTOSMS_ADDRESS: eventos  # Agregar variable para el servicio de eventos
+      REFERIDOS_ADDRESS: referidos  # Agregar variable para el servicio de referidos
+      PAGOS_ADDRESS: pagos  # Agregar variable para el servicio de pagos
     depends_on:
       pulsar:
         condition: service_healthy

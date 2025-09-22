@@ -1,8 +1,9 @@
 from seedworks.aplicacion.queries import ejecutar_query, QueryResultado
 from .base import PagoQueryBaseHandler
 from .obtener_estado_pago import ObtenerEstadoPagoQuery
-from ...infraestructura.repositorio_postgresql import RepositorioPagosPG
+from ...infraestructura.repositorio_postgresql import RepositorioPagosPG, PagoORM
 from config.pulsar_config import Settings
+
 
 class ObtenerEstadoPagoHandler(PagoQueryBaseHandler):
     """
@@ -18,7 +19,7 @@ class ObtenerEstadoPagoHandler(PagoQueryBaseHandler):
         
         with repo.SessionLocal() as session:
             # Buscar pago por ID
-            pago = session.query(repo.PagoORM).filter_by(idPago=query.idPago).first()
+            pago = session.query(PagoORM).filter_by(idPago=query.idPago).first()
             
             if not pago:
                 print(f"❌ Pago {query.idPago} no encontrado")
@@ -31,7 +32,7 @@ class ObtenerEstadoPagoHandler(PagoQueryBaseHandler):
                 "idSocio": pago.idSocio,
                 "pago": float(pago.monto),  # Se expone como 'pago' según contrato
                 "estadoPago": pago.estado,  # camelCase
-                "fechaPago": pago.fechaPago.isoformat()
+                "fechaPago": pago.fechaEvento.isoformat()
             }
             
             print(f"✅ Pago {query.idPago} encontrado: {pago_response['estadoPago']}")
