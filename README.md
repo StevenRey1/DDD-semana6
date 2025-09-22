@@ -11,6 +11,10 @@ Este documento describe cómo probar la integración de los microservicios del p
 - **Orquestación:** Docker Compose para levantar toda la infraestructura
 
 ```
+
+
+
+
 ┌─────────────┐   ┌─────────────┐   ┌─────────────┐   ┌─────────────┐
 │  Referidos  │   │ Pagos       │   │ Notificaciones │ │ Eventos    │
 │  (8003)     │   │ (8080)      │   │ (8002)         │ │ (8003)     │
@@ -179,5 +183,11 @@ docker system prune -f
 | 3  | Microservicio Notificaciones| Jesús Rey                      |
 | 4  | Microservicio Eventos       | Fabiani Lozano                 |
 | 5  | Docker Compose              | Pair programming               |
-| 6  | Readme                      | Nicolas Valderrama - Jesús Rey |
+| 6  | Implementación Bff          | Jesús Rey                      |
+| 7  | Implementación saga Log     | Pair programming               |
+| 8  | Implementación Saga         | Fabiani Lozano                 |
+| 8  | Implementación UI           | Pair programming               |
+| 9  | Readme                      | Nicolas Valderrama - Jesús Rey |
+
+
 
