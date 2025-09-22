@@ -33,14 +33,32 @@ class RepositorioReferidosPostgreSQL(RepositorioReferidos):
         print(f"Referido DTO from DB by idReferido {idReferido}: {referido_dto.__dict__}")
         return self.fabrica_referidos.crear_objeto(referido_dto, MapeadorReferido())
 
+    def obtener_por_id_evento(self, idEvento: UUID) -> Referido:
+        """Obtener un referido específico por su evento"""
+        referido_dto = db.session.query(Referido).filter_by(idEvento=str(idEvento)).first()
+        if not referido_dto:
+            raise ValueError(f"evento no encontrado: {idEvento}")
+        print(f"Referido DTO from DB by idEvento {idEvento}: {referido_dto.__dict__}")
+        return self.fabrica_referidos.crear_objeto(referido_dto, MapeadorReferido())
+
+    def obtener_por_socio_referido_evento(self, idSocio: UUID, idReferido: UUID, idEvento: UUID) -> Referido:
+        referido = db.session.query(Referido).filter_by(
+            idSocio=str(idSocio),
+            idReferido=str(idReferido),
+            idEvento=str(idEvento)
+        ).first()
+        print(f"💾 Referido retrieved from DB: {referido}")
+        return self.fabrica_referidos.crear_objeto(referido, MapeadorReferido()) if referido else None
+
     def obtener_todos(self) -> list[Referido]:
-        # Implementar lógica para obtener todos si es necesario
-        raise NotImplementedError
+        referidos_dto = db.session.query(Referido).all()
+        print(f"Referidos DTO from DB: {len(referidos_dto)} encontrados")
+        return [self.fabrica_referidos.crear_objeto(dto, MapeadorReferido()) for dto in referidos_dto]
 
     def agregar(self, referido: Referido):
         print("======================")
-        print(f"🔄 [REPO] RepositorioReferidosPostgreSQL.agregar - Referido: {referido}")
-        print(f"🔄 [REPO] ID: {referido.id}, idSocio: {referido.idSocio}, idReferido: {referido.idReferido}")
+        print(f"💾 [REPO] RepositorioReferidosPostgreSQL.agregar - Referido: {referido}")
+        print(f"💾 [REPO] ID: {referido.id}, idSocio: {referido.idSocio}, idReferido: {referido.idReferido}")
         print("======================")
         
         try:
@@ -58,7 +76,9 @@ class RepositorioReferidosPostgreSQL(RepositorioReferidos):
             raise
 
     def actualizar(self, referido: Referido):
+        print(f"💾 [REPO] Actualizando referido: {referido}")
         referido_dto = self.fabrica_referidos.crear_objeto(referido, MapeadorReferido())
+        print(f"💾 [REPO] DTO para actualizar: {referido_dto}")
         db.session.merge(referido_dto) # Merge para actualizar
 
     def eliminar(self, referido_id: UUID):

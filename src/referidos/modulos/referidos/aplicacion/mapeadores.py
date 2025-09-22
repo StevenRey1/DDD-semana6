@@ -9,6 +9,7 @@ from modulos.referidos.dominio.objetos_valor import TipoAccion
 from .dto import ReferidoDTO
 
 from datetime import datetime
+from modulos.referidos.dominio import objetos_valor as ov
 import uuid 
 
 
@@ -58,11 +59,18 @@ class MapeadorReferido(RepMap):
         return referido_dto
 
     def dto_a_entidad(self, dto: ReferidoDTO) -> Referido:
-        referido = Referido()
-        referido.id = uuid.UUID(dto.id) if dto.id else uuid.uuid4()
-        referido.id_afiliado = uuid.UUID(dto.id_afiliado)
-        referido.tipo_accion = dto.tipo_accion
-        referido.detalle_accion = dto.detalle_accion
+        print("=== Mapeando ReferidoDTO a Referido ===")
+        print(f"DTO recibido: {dto}")
+        
+        referido = Referido(
+            idSocio=uuid.UUID(dto.idSocio),
+            idReferido=uuid.UUID(dto.idReferido),
+            idEvento=uuid.UUID(dto.idEvento),
+            monto=float(dto.monto),
+            estado=ov.EstadoReferido(dto.estado),
+            fechaEvento=datetime.fromisoformat(dto.fechaEvento.replace('Z', '+00:00')),
+            tipoEvento=ov.TipoEvento(dto.tipoEvento)
+        )
         return referido
 
     def obtener_tipo(self) -> type:

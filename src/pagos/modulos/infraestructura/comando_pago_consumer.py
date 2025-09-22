@@ -1,0 +1,94 @@
+import pulsar
+import pulsar as _pulsar
+from pulsar.schema import AvroSchema
+from seedworks.aplicacion.comandos import ejecutar_commando
+from ..aplicacion.comandos.pago_command import PagoCommand, PagoData
+try:
+    from config.pulsar_config import PulsarConfig, settings  # type: ignore
+except ImportError:
+    # Fallback si la imagen no tiene aún la clase PulsarConfig (compatibilidad)
+    from config.pulsar_config import settings  # type: ignore
+    class PulsarConfig:  # minimal shim
+        def __init__(self):
+            self.pulsar_url = getattr(settings, 'PULSAR_URL', 'pulsar://pulsar:6650')
+            self.topic_pagos = getattr(settings, 'TOPIC_PAGOS', 'eventos-pago')
+from pagos.schema.eventos_pagos import ProcesarPago
+import logging
+from datetime import datetime
+
+def suscribirse_a_comando_pago():
+    """
+    Consumer para comandos PagoCommand del tópico comando-pago.
+    Según especificación actualizada.
+    """
+    cliente = None
+    try:
+        print("🚀 [COMANDO-PAGO CONSUMER] Iniciando...")
+        pulsar_config = PulsarConfig()
+        cliente = pulsar.Client(pulsar_config.pulsar_url)
+        
+        consumidor = cliente.subscribe(
+            "comando-pago",  # Tópico según especificación
+            consumer_type=_pulsar.ConsumerType.Shared,
+            subscription_name='pagos-comando-sub',
+            schema=AvroSchema(ProcesarPago),
+            initial_position=_pulsar.InitialPosition.Earliest
+        )
+
+        print("✅ [COMANDO-PAGO CONSUMER] Conectado al tópico 'comando-pago'")
+
+        while True:
+            try:
+                mensaje = consumidor.receive(timeout_millis=5000)
+                
+                if mensaje:
+                    print(f'📨 [COMANDO-PAGO CONSUMER] PagoCommand recibido')
+                    datos = mensaje.value()
+                    
+                    try:
+                        # ✅ Convertir mensaje Avro a comando interno
+                        pago_data = PagoData(
+                            idEvento=datos.idEvento,
+                            idSocio=datos.idSocio,
+                            monto=datos.monto,
+                            fechaEvento=str(datos.fechaEvento)
+                        )
+                        
+                        comando = PagoCommand(
+                            comando=datos.comando,
+                            idTransaction=datos.idTransaction,
+                            data=pago_data
+                        )
+                        
+                        # 🎯 DELEGACIÓN TOTAL al sistema CQRS!
+                        print(f"🔄 [COMANDO-PAGO CONSUMER] Ejecutando comando {datos.comando}")
+                        ejecutar_commando(comando)
+                        print(f"✅ [COMANDO-PAGO CONSUMER] Comando ejecutado exitosamente")
+                        
+                    except Exception as e:
+                        print(f"❌ [COMANDO-PAGO CONSUMER] Error ejecutando comando 2: {e}")
+                        logging.error(f"Error ejecutando comando: {e}")
+                    
+                    consumidor.acknowledge(mensaje)
+                    
+            except pulsar.Timeout:
+                continue
+            except Exception as e:
+                print(f"❌ [COMANDO-PAGO CONSUMER] Error recibiendo mensaje: {e}")
+                continue
+
+    except Exception as e:
+        logging.error(f'ERROR: [COMANDO-PAGO CONSUMER] Suscribiéndose al tópico comando-pago: {e}')
+    finally:
+        if cliente:
+            cliente.close()
+
+def main_comando_pago_consumer():
+    """
+    Función principal del consumer de comandos.
+    """
+    print("🎯 [COMANDO-PAGO CONSUMER] Iniciando consumer para comando-pago")
+    suscribirse_a_comando_pago()
+
+if __name__ == "__main__":
+    main_comando_pago_consumer()

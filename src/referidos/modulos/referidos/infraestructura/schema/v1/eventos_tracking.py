@@ -21,7 +21,8 @@ class EventoRegistradoPayload(Record):
         "estado": "pendiente",
         "fechaEvento": "2025-09-09T20:00:00Z"
     }
-    """
+    """    
+    idTransaction = String(required=False)
     idEvento = String()
     tipoEvento = String()
     idReferido = String()
@@ -32,7 +33,7 @@ class EventoRegistradoPayload(Record):
 
 class EventoRegistrado(EventoIntegracion):
     """
-    Esquema para EventoRegistrado que se recibe del tópico eventos-tracking
+    Esquema para EventoRegistrado que se recibe del tópico comando-referido
     Ahora usa la estructura estándar de EventoIntegracion
     DEBE coincidir exactamente con el esquema que publica eventosMS
     """

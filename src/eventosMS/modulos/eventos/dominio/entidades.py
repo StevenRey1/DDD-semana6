@@ -24,6 +24,8 @@ class Evento(AgregacionRaiz):
     ganancia: float = field(default=0.0)
     estado: str = field(default="pendiente")
     fecha_evento: datetime = field(default=None)
+    comando: Optional[str] = field(default=None)  # "Iniciar" | "Cancelar"
+    id_transaction: Optional[str] = field(default=None)
 
     def crear_evento(self, evento: Evento):
         """
@@ -39,6 +41,8 @@ class Evento(AgregacionRaiz):
         self.fecha_creacion = evento.fecha_creacion
         self.fecha_actualizacion = evento.fecha_actualizacion
         self.fecha_evento = evento.fecha_evento
+        self.comando = evento.comando
+        self.id_transaction = evento.id_transaction
 
         self.agregar_evento(EventoRegistrado(
             evento_id=self.id,
@@ -48,7 +52,9 @@ class Evento(AgregacionRaiz):
             monto=self.monto,
             ganancia=self.ganancia,
             estado=self.estado,
-            fecha_evento=self.fecha_evento
+            fecha_evento=self.fecha_evento,
+            comando=self.comando,
+            id_transaction=self.id_transaction
         ))
 
     def actualizar_con_pago(self, id_pago: str, estado_pago: str, ganancia: float, 

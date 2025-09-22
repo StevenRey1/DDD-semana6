@@ -10,11 +10,10 @@ import datetime
 class Referido(db.Model):
     __tablename__ = "referidos"
     __table_args__ = {'extend_existing': True}
-    id = db.Column(db.String, primary_key=True)
-    idSocio = db.Column(db.String, nullable=False)
-    idReferido = db.Column(db.String, nullable=False)
+    idSocio = db.Column(db.String, primary_key=True, nullable=False)
+    idReferido = db.Column(db.String, primary_key=True, nullable=False)
     estado = db.Column(db.String, nullable=False)
-    idEvento = db.Column(db.String, nullable=False)
+    idEvento = db.Column(db.String, primary_key=True, nullable=False)
     monto = db.Column(db.Float, nullable=False)
     tipoEvento = db.Column(db.String, nullable=False)
     fechaEvento = db.Column(db.DateTime, nullable=False)

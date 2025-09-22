@@ -1,7 +1,6 @@
 from sqlalchemy import create_engine, Column, String, Float, DateTime, Numeric
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
 from sqlalchemy.exc import IntegrityError
-from datetime import datetime
 from typing import Optional
 from ..dominio.entidades import Pago
 from ..dominio.repositorios import RepoPagos
@@ -15,16 +14,9 @@ class PagoORM(Base):
     idSocio = Column(String, nullable=False)
     monto = Column(Numeric(18,2), nullable=False)
     estado = Column(String, nullable=False)
-    fechaPago = Column(DateTime(timezone=True), nullable=False)
+    fechaEvento = Column(DateTime(timezone=True), nullable=False)
+    idTransaction = Column(String, nullable=True)  # Nuevo campo según especificación
 
-class OutboxORM(Base):
-    __tablename__ = "outbox"
-    id = Column(String, primary_key=True)
-    topic = Column(String, nullable=False)
-    key = Column(String, nullable=False)
-    payload = Column(String, nullable=False)
-    status = Column(String, nullable=False)
-    created_at = Column(DateTime(timezone=True), nullable=False)
 
 class RepositorioPagosPG(RepoPagos):
     def __init__(self, db_url: str):
@@ -42,7 +34,8 @@ class RepositorioPagosPG(RepoPagos):
                     idSocio=pago_orm.idSocio,
                     monto=float(pago_orm.monto),
                     estado=pago_orm.estado,
-                    fechaPago=pago_orm.fechaPago
+                    fechaEvento=pago_orm.fechaEvento,
+                    idTransaction=pago_orm.idTransaction
                 )
             return None
 
@@ -51,7 +44,8 @@ class RepositorioPagosPG(RepoPagos):
             pago_orm = session.get(PagoORM, pago.idPago)
             if pago_orm:
                 pago_orm.estado = pago.estado
-                pago_orm.fechaPago = pago.fechaPago
+                pago_orm.fechaEvento = pago.fechaEvento
+                pago_orm.idTransaction = pago.idTransaction
             else:
                 pago_orm = PagoORM(
                     idPago=pago.idPago,
@@ -59,23 +53,10 @@ class RepositorioPagosPG(RepoPagos):
                     idSocio=pago.idSocio,
                     monto=pago.monto,
                     estado=pago.estado,
-                    fechaPago=pago.fechaPago
+                    fechaEvento=pago.fechaEvento,
+                    idTransaction=pago.idTransaction
                 )
                 session.add(pago_orm)
-            session.commit()
-
-    def outbox_add(self, topic: str, key: str, payload: str) -> None:
-        from uuid import uuid4
-        with self.SessionLocal() as session:
-            outbox = OutboxORM(
-                id=str(uuid4()),
-                topic=topic,
-                key=key,
-                payload=payload,
-                status="PENDING",
-                created_at=datetime.utcnow()
-            )
-            session.add(outbox)
             session.commit()
 
     def init_db(self):

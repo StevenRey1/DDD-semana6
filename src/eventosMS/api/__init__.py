@@ -1,5 +1,6 @@
 import os
 
+
 from flask import Flask, jsonify
 from flask_swagger import swagger
 
@@ -12,25 +13,27 @@ def registrar_handlers():
 
 def importar_modelos_alchemy():
     import modulos.eventos.infraestructura.dto
+    import eventosMS.modulos.sagas.infraestructura.modelos 
 
 
 def comenzar_consumidor(app):
-    """
-    Este es un código de ejemplo. Aunque esto sea funcional puede ser un poco peligroso tener 
-    threads corriendo por si solos. Mi sugerencia es en estos casos usar un verdadero manejador
-    de procesos y threads como Celery.
-    """
-
     import threading
     import modulos.eventos.infraestructura.consumidores as eventos
+    import modulos.sagas.infraestructura.consumidores as sagas
+
+    def run_with_context(target, *args):
+        with app.app_context():
+            target(*args)
+
+    threading.Thread(target=run_with_context, args=(eventos.suscribirse_a_eventos_pago, app)).start()
+    threading.Thread(target=run_with_context, args=(eventos.suscribirse_a_comandos_evento, app)).start()
+    threading.Thread(target=run_with_context, args=(sagas.subscribirse_a_eventos_bff, app)).start()
+    threading.Thread(target=run_with_context, args=(sagas.subscribirse_a_eventos_tracking, app)).start()
+    threading.Thread(target=run_with_context, args=(sagas.subscribirse_a_evento_referido, app)).start()
+    threading.Thread(target=run_with_context, args=(sagas.subscribirse_a_eventos_pago, app)).start()
 
 
-    # Suscripción a eventos
-    threading.Thread(target=eventos.suscribirse_a_eventos_pago, args=(app,)).start()
 
-
-    # Suscripción a comandos
-    threading.Thread(target=eventos.suscribirse_a_comandos).start()
 
 def create_app(configuracion={}):
     # Init la aplicacion de Flask

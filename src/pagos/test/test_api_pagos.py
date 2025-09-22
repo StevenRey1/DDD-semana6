@@ -1,30 +1,52 @@
 import pytest
 from fastapi.testclient import TestClient
-from pagos.main import app
+from main import app
+from uuid import uuid4
 
 client = TestClient(app)
 
-def test_post_pagos():
+def test_post_pagos_iniciar():
+    """Test comando Iniciar según especificación"""
     data = {
-        "idEvento": "evento1",
-        "idSocio": "socio1",
-        "monto": 123.45,
-        "fechaEvento": "2025-09-09T20:00:00Z"
+        "comando": "Iniciar",
+        "idTransaction": str(uuid4()),
+        "data": {
+            "idEvento": str(uuid4()),
+            "idSocio": str(uuid4()),
+            "monto": 123.45,
+            "fechaEvento": "2025-09-09T20:00:00Z"
+        }
     }
     resp = client.post("/pagos", json=data)
     assert resp.status_code == 202
-    assert "operation_id" in resp.json()
+    assert "message" in resp.json()
 
-def test_get_pagos():
-    # Primero crear
+def test_post_pagos_cancelar():
+    """Test comando Cancelar según especificación"""
     data = {
-        "idEvento": "evento2",
-        "idSocio": "socio2",
-        "monto": 200.0,
-        "fechaEvento": "2025-09-09T20:00:00Z"
+        "comando": "Cancelar", 
+        "idTransaction": str(uuid4()),
+        "data": {
+            "idEvento": str(uuid4()),
+            "idSocio": str(uuid4()),
+            "monto": 123.45,
+            "fechaEvento": "2025-09-09T20:00:00Z"
+        }
     }
     resp = client.post("/pagos", json=data)
-    idPago = resp.json()["operation_id"]
-    resp2 = client.get(f"/pagos/{idPago}")
-    assert resp2.status_code == 200
-    assert resp2.json()["idPago"] == idPago
+    assert resp.status_code == 202
+    assert "message" in resp.json()
+
+def test_get_pagos_estado():
+    """Test consulta de estado según especificación"""
+    fake_pago_id = str(uuid4())
+    resp = client.get(f"/pagos/{fake_pago_id}")
+    # Esperamos 404 para ID inexistente
+    assert resp.status_code == 404
+
+def test_health_check():
+    """Test health check endpoint"""
+    resp = client.get("/health")
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "ok"
+    assert resp.json()["service"] == "pagos"
