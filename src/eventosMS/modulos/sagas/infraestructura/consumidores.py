@@ -251,16 +251,32 @@ def subscribirse_a_eventos_pago(app):
                     logger.info(f"Evento recibido: {datos}")
                     print(f"📋 Datos del evento: {datos}")
                     print(f"📋 Datos del data: {datos.__dict__}")
-                    pago_dto = PagoProcesadoDominio(
-                        idTransaction=datos.idTransaction,
-                        idPago=datos.idPago,
-                        idEvento=datos.idEvento,
-                        idSocio=datos.idSocio,
-                        monto=datos.monto,
-                        estado=datos.estado,
-                        fechaEvento=datos.fechaEvento
-                    )
-                    oir_mensaje(pago_dto, app)
+
+                    if datos.estado.lower() == 'rechazado':
+                        evento_dto = EventoRegistrado(
+                            idTransaction=datos.idTransaction,
+                            idEvento=datos.idEvento,
+                            tipoEvento='',
+                            idSocio=datos.idSocio,
+                            monto=datos.monto,
+                            estado='rechazado',
+                            fechaEvento=datos.fechaEvento
+                        )
+                        oir_mensaje(evento_dto, app)
+                    else:
+                        pago_dto = PagoProcesadoDominio(
+                            idTransaction=datos.idTransaction,
+                            idPago=datos.idPago,
+                            idEvento=datos.idEvento,
+                            idSocio=datos.idSocio,
+                            monto=datos.monto,
+                            estado=datos.estado,
+                            fechaEvento=datos.fechaEvento
+                        )
+                        oir_mensaje(pago_dto, app)
+
+
+                    
                     # acknowledge the message to remove it from the subscription
                     consumidor.acknowledge(mensaje)
 
